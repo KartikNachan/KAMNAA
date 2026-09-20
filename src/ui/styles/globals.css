@@ -1,0 +1,198 @@
+@import url('https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@400;700;800;900&family=Fraunces:ital,opsz,wght@0,9..40,400;0,9..40,600;1,9..40,400&family=Spline+Sans+Mono:wght@400;500;600&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ─────────────────────────────────────────────────────────────
+ * Hallmark · Custom-04 "The Mend Assembly" Riso Broadsheet DNA
+ * Paper: oklch(94% 0.012 85) #f5f2e9
+ * Ink: oklch(24% 0.018 65) #28231d
+ * Accent: Riso Vermilion #e23829
+ * Fonts: Big Shoulders Display, Fraunces, Spline Sans Mono
+ * ───────────────────────────────────────────────────────────── */
+
+:root {
+  --color-paper: #0A0A0A;
+  --color-paper-2: #111111;
+  --color-paper-3: #111111;
+  --color-ink: #F5F5F5;
+  --color-ink-2: #F5F5F5;
+  --color-ink-mute: #8A8A8A;
+  --color-rule: #242424;
+  --color-hairline: #242424;
+  --color-accent: #22D3EE;
+  --color-teal: #4ADE80;
+  --color-error: #F87171;
+
+  --font-display: "Big Shoulders Display", sans-serif;
+  --font-body: "Fraunces", Georgia, serif;
+  --font-mono: "Spline Sans Mono", monospace;
+}
+
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background-color: var(--color-paper);
+  color: var(--color-ink-2);
+  font-family: var(--font-body);
+  font-size: 14px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+}
+
+/* Removed Paper texture overlay */
+
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background-image: repeating-linear-gradient(115deg, rgba(40, 35, 29, 0.03) 0 1px, transparent 1px 3px);
+  mix-blend-mode: multiply;
+}
+
+/* Custom Broadsheet Typography Classes */
+.font-display-poster {
+  font-family: var(--font-display);
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  line-height: 0.95;
+}
+
+.font-body-editorial {
+  font-family: var(--font-body);
+}
+
+.font-mono-press {
+  font-family: var(--font-mono);
+  letter-spacing: 0.04em;
+}
+
+/* Hallmark Custom-04 Broadsheet Cards & Controls */
+.hallmark-card {
+  background: var(--color-paper);
+  border: 2px solid var(--color-ink);
+  box-shadow: 3px 3px 0px var(--color-ink);
+  color: var(--color-ink);
+}
+
+.hallmark-card-accent {
+  background: var(--color-accent);
+  color: var(--color-paper);
+  border: 2px solid var(--color-ink);
+  box-shadow: 3px 3px 0px var(--color-ink);
+}
+
+.hallmark-input {
+  background: var(--color-paper-2);
+  border: 2px solid var(--color-ink);
+  color: var(--color-ink);
+  font-family: var(--font-mono);
+  box-shadow: inset 1px 1px 2px rgba(0, 0, 0, 0.1);
+  transition: all 0.15s ease;
+}
+
+.hallmark-input:focus-within {
+  border-color: var(--color-accent);
+  outline: none;
+  box-shadow: 0 0 0 2px var(--color-accent);
+}
+
+.hallmark-button {
+  background: var(--color-paper-2);
+  border: 2px solid var(--color-ink);
+  color: var(--color-ink);
+  font-family: var(--font-mono);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  box-shadow: 2px 2px 0px var(--color-ink);
+  transition: all 0.1s ease;
+}
+
+.hallmark-button:hover {
+  background: var(--color-ink);
+  color: var(--color-paper);
+  transform: translate(-1px, -1px);
+  box-shadow: 3px 3px 0px var(--color-ink);
+}
+
+.hallmark-button:active {
+  transform: translate(1px, 1px);
+  box-shadow: 1px 1px 0px var(--color-ink);
+}
+
+.hallmark-button-primary {
+  background: var(--color-accent);
+  border: 2px solid var(--color-ink);
+  color: var(--color-paper);
+  font-family: var(--font-mono);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  box-shadow: 2px 2px 0px var(--color-ink);
+  transition: all 0.1s ease;
+}
+
+.hallmark-button-primary:hover {
+  background: var(--color-ink);
+  color: var(--color-paper);
+  transform: translate(-1px, -1px);
+  box-shadow: 3px 3px 0px var(--color-ink);
+}
+
+/* Broadsheet Press Corner Crop Marks */
+.press-crop-tl {
+  border-top: 2px solid var(--color-ink);
+  border-left: 2px solid var(--color-ink);
+}
+.press-crop-tr {
+  border-top: 2px solid var(--color-ink);
+  border-right: 2px solid var(--color-ink);
+}
+.press-crop-bl {
+  border-bottom: 2px solid var(--color-ink);
+  border-left: 2px solid var(--color-ink);
+}
+.press-crop-br {
+  border-bottom: 2px solid var(--color-ink);
+  border-right: 2px solid var(--color-ink);
+}
+
+/* Removed Riso Ghost Effect */
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-paper-2);
+  border-left: 1px solid var(--color-hairline);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-ink);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-accent);
+}
+
+::selection {
+  background: var(--color-accent);
+  color: var(--color-paper);
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
