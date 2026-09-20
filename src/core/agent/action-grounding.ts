@@ -94,7 +94,63 @@ export function groundAction(
     return { success: false, groundedTarget: "", reason: "no_semantic_intent", diagnostic: diagnosticLog };
   }
 
-  // 2. Candidate Matching against CURRENT DOM
+  // 2. SELECT Action Grounding Fast-Path
+  if (plannedAction.action.type === "select" && diagnosticLog.originalTargetIndex !== null && currentDomData?.elements) {
+    const origIdx = diagnosticLog.originalTargetIndex;
+    const currentEl = currentDomData.elements[origIdx];
+    if (currentEl) {
+      const originalEl = originalDomData?.elements?.[origIdx];
+      const isTagMatch = currentEl.tag === "select" || currentEl.role === "combobox";
+      
+      const selectDiagnostic = {
+        originalTarget: llmTarget,
+        targetDescription: targetDesc || "",
+        originalElementTag: originalEl?.tag || "",
+        originalElementRole: originalEl?.role || "",
+        originalElementText: originalEl?.text || originalEl?.ariaLabel || originalEl?.label || "",
+        resolvedTarget: `[${origIdx}]`,
+        resolvedElementTag: currentEl.tag || "",
+        resolvedElementRole: currentEl.role || "",
+        resolvedElementText: currentEl.text || currentEl.ariaLabel || currentEl.label || "",
+        groundingMethod: "preserved_original_target",
+        groundingScore: 100,
+        decision: "preserved_original_target"
+      };
+
+      if (isTagMatch) {
+        console.log("[KAMNAA SELECT GROUNDING]\n" + JSON.stringify(selectDiagnostic, null, 2));
+        
+        diagnosticLog.freshDomTargetIndex = origIdx;
+        diagnosticLog.targetTag = currentEl.tag;
+        diagnosticLog.targetRole = currentEl.role;
+        diagnosticLog.targetText = currentEl.text || currentEl.ariaLabel || currentEl.label || "";
+        diagnosticLog.groundingScore = 100;
+        diagnosticLog.groundingMethod = "preserved_original_target";
+        
+        const visibilityState = currentEl.visibilityState || (currentEl.isVisible ? "visible" : "hidden");
+        let groundingDecision = visibilityState === "offscreen" ? "allowed_offscreen" : (visibilityState === "visible" ? "allowed_visible" : "target_hidden");
+        
+        if (!currentEl.isVisible && visibilityState !== "offscreen") {
+           return { success: false, groundedTarget: "", reason: "target_hidden", diagnostic: diagnosticLog };
+        }
+        if (currentEl.isDisabled) {
+           return { success: false, groundedTarget: "", reason: "target_disabled", diagnostic: diagnosticLog };
+        }
+        
+        return {
+          success: true,
+          groundedTarget: `[${origIdx}]`,
+          reason: groundingDecision,
+          diagnostic: diagnosticLog
+        };
+      } else {
+        selectDiagnostic.decision = "rejected_structural_mismatch";
+        console.log("[KAMNAA SELECT GROUNDING]\n" + JSON.stringify(selectDiagnostic, null, 2));
+      }
+    }
+  }
+
+  // 3. Candidate Matching against CURRENT DOM
   if (currentDomData?.elements) {
     const candidates = currentDomData.elements.map((el: any, index: number) => {
       const elText = norm(el.text || el.ariaLabel || el.label || "");

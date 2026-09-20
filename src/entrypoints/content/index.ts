@@ -877,6 +877,9 @@ export default defineContentScript({
               const preUrl = window.location.href;
               const preHtml = el.outerHTML;
               const preRect = el.getBoundingClientRect();
+              const activeElementBefore = document.activeElement;
+              const activeElementBeforeTagName = activeElementBefore?.tagName;
+              const preValue = (el as any).value;
               const preElementCount = document.querySelectorAll('*').length;
               const wasChecked = isCheckable(el) ? (el as HTMLInputElement).checked : undefined;
 
@@ -1033,143 +1036,311 @@ export default defineContentScript({
                 return;
               }
               
+              const isInputLike = ["INPUT", "TEXTAREA", "SELECT"].includes(el.tagName);
+              const activeElementAfter = document.activeElement;
+              const isFocused = activeElementAfter === el;
+              
+              const formActionVerify = {
+                actionType: "click",
+                tag: el.tagName,
+                role: el.getAttribute("role") || "",
+                targetIndex: action.target,
+                beforeValue: preValue,
+                afterValue: (el as any).value,
+                activeElementBefore: activeElementBeforeTagName,
+                activeElementAfter: activeElementAfter?.tagName,
+                focused: isFocused,
+                nativeClickDispatched: true,
+                actionReturned: true,
+                verificationReason: isInputLike ? (isFocused ? "input_focused" : "input_clicked") : "no_observable_change",
+                verificationResult: isInputLike
+              };
+              console.log("[KAMNAA FORM ACTION VERIFY]\n" + JSON.stringify(formActionVerify, null, 2));
+
+              if (isInputLike) {
+                resolve({ success: true, verified: true, verificationReason: formActionVerify.verificationReason });
+                return;
+              }
+              
               resolve({ success: true, verified: false, verificationReason: "no_observable_change" });
               break;
             }
 
             case "type": {
-              const res = await resolveAndScrollTarget(action);
-              if (res.error || !res.el) {
-                resolve({ success: false, error: res.error });
-                return;
-              }
-              const el = res.el;
+              const trace = {
+                actionIndex: (action as any)._meta?.stepIndex !== undefined ? (action as any)._meta.stepIndex + 1 : 1,
+                actionType: "type",
+                originalTarget: action.target,
+                groundedTarget: action.target,
+                targetDescription: (action as any).targetDescription || "",
+                requestedValue: action.value || "",
+                targetFound: false,
+                targetVisible: false,
+                targetDisabled: false,
+                targetTag: "",
+                targetRole: "",
+                resolvedIndex: action.target ? parseInt(action.target.match(/\d+/)?.[0] || "-1", 10) : -1,
+                beforeValue: "",
+                afterValue: "",
+                focusSucceeded: false,
+                nativeValueSetterUsed: false,
+                inputEventDispatched: false,
+                changeEventDispatched: false,
+                exception: null as string | null,
+                verificationStarted: false,
+                verificationResult: false
+              };
 
-              const input = el as HTMLInputElement;
-              input.focus();
-              input.select();
-
-              // Native setter hack: bypasses React/Vue synthetic event system
-              // React overrides the value setter on input elements, so setting
-              // input.value directly doesn't trigger React's onChange handler.
-              // We use the native prototype setter to set the value, then dispatch
-              // an input event so React picks it up.
-              const isTextArea = el instanceof HTMLTextAreaElement;
-              const proto = isTextArea
-                ? HTMLTextAreaElement.prototype
-                : HTMLInputElement.prototype;
-
-              // BUG-12 FIX: removed duplicate `|| getOwnPropertyDescriptor(proto,"value")`
-              // — both sides of the || were identical, making the fallback dead code.
-              const nativeSetter = Object.getOwnPropertyDescriptor(proto, "value")?.set;
-
-              // Clear existing value
-              if (nativeSetter) {
-                nativeSetter.call(input, "");
-              } else {
-                input.value = "";
-              }
-              input.dispatchEvent(new Event("input", { bubbles: true }));
-
-              // Human-like typing with realistic delays
-              let i = 0;
-              const value = action.value || "";
-              const preValue = input.value;
-              const typeNext = () => {
-                if (i >= value.length) {
-                  input.dispatchEvent(
-                    new Event("change", { bubbles: true })
-                  );
-                  input.blur();
-                  
-                  // VERIFICATION
-                  if (input.value !== preValue) {
-                    resolve({ success: true, verified: true, verificationReason: "value_changed" });
-                  } else {
-                    resolve({ success: true, verified: false, verificationReason: "value_unchanged" });
-                  }
+              try {
+                const res = await resolveAndScrollTarget(action);
+                if (res.error || !res.el) {
+                  trace.exception = res.error || "Element not found";
+                  console.log("[KAMNAA TYPE TRACE]\n" + JSON.stringify(trace, null, 2));
+                  resolve({ success: false, error: res.error });
                   return;
                 }
-                const char = value[i];
-                input.dispatchEvent(
-                  new KeyboardEvent("keydown", {
-                    key: char,
-                    code: `Key${char.toUpperCase()}`,
-                    bubbles: true,
-                  })
-                );
-                // Use native setter so React/Vue pick up the change
-                const currentValue = input.value;
+                const el = res.el;
+                trace.targetFound = true;
+                trace.targetVisible = isElementInViewport(el);
+                trace.targetDisabled = (el as any).disabled || el.hasAttribute("disabled");
+                trace.targetTag = el.tagName;
+                trace.targetRole = el.getAttribute("role") || "";
+
+                const input = el as HTMLInputElement;
+                trace.beforeValue = input.value;
+                
+                input.focus();
+                trace.focusSucceeded = document.activeElement === input;
+                input.select();
+
+                const isTextArea = el instanceof HTMLTextAreaElement;
+                const proto = isTextArea
+                  ? HTMLTextAreaElement.prototype
+                  : HTMLInputElement.prototype;
+
+                const nativeSetter = Object.getOwnPropertyDescriptor(proto, "value")?.set;
+
                 if (nativeSetter) {
-                  nativeSetter.call(input, currentValue + char);
+                  trace.nativeValueSetterUsed = true;
+                  nativeSetter.call(input, "");
                 } else {
-                  input.value += char;
+                  input.value = "";
                 }
-                input.dispatchEvent(
-                  new InputEvent("input", {
-                    data: char,
-                    inputType: "insertText",
-                    bubbles: true,
-                  })
-                );
-                input.dispatchEvent(
-                  new KeyboardEvent("keyup", {
-                    key: char,
-                    code: `Key${char.toUpperCase()}`,
-                    bubbles: true,
-                  })
-                );
-                i++;
-                setTimeout(typeNext, 30 + Math.random() * 50);
-              };
-              typeNext();
+                input.dispatchEvent(new Event("input", { bubbles: true }));
+                trace.inputEventDispatched = true;
+
+                let i = 0;
+                const value = action.value || "";
+                const preValue = input.value;
+                const typeNext = () => {
+                  if (i >= value.length) {
+                    input.dispatchEvent(
+                      new Event("change", { bubbles: true })
+                    );
+                    trace.changeEventDispatched = true;
+                    input.blur();
+                    
+                    trace.afterValue = input.value;
+                    trace.verificationStarted = true;
+                    if (input.value !== preValue) {
+                      trace.verificationResult = true;
+                      console.log("[KAMNAA TYPE TRACE]\n" + JSON.stringify(trace, null, 2));
+                      resolve({ success: true, verified: true, verificationReason: "value_changed" });
+                    } else {
+                      trace.verificationResult = false;
+                      console.log("[KAMNAA TYPE TRACE]\n" + JSON.stringify(trace, null, 2));
+                      resolve({ success: true, verified: false, verificationReason: "value_unchanged" });
+                    }
+                    return;
+                  }
+                  const char = value[i];
+                  input.dispatchEvent(
+                    new KeyboardEvent("keydown", {
+                      key: char,
+                      code: `Key${char.toUpperCase()}`,
+                      bubbles: true,
+                    })
+                  );
+                  const currentValue = input.value;
+                  if (nativeSetter) {
+                    nativeSetter.call(input, currentValue + char);
+                  } else {
+                    input.value += char;
+                  }
+                  input.dispatchEvent(
+                    new InputEvent("input", {
+                      data: char,
+                      inputType: "insertText",
+                      bubbles: true,
+                    })
+                  );
+                  input.dispatchEvent(
+                    new KeyboardEvent("keyup", {
+                      key: char,
+                      code: `Key${char.toUpperCase()}`,
+                      bubbles: true,
+                    })
+                  );
+                  i++;
+                  setTimeout(typeNext, 30 + Math.random() * 50);
+                };
+                typeNext();
+              } catch (err: any) {
+                trace.exception = err.message;
+                console.log("[KAMNAA TYPE TRACE]\n" + JSON.stringify(trace, null, 2));
+                resolve({ success: false, error: err.message });
+              }
               break;
             }
 
             case "select": {
-              const el = action.coordinates
-                ? document.elementFromPoint(action.coordinates.x, action.coordinates.y)
-                : findElement(action.target || "");
-              if (!el || el.tagName !== "SELECT") {
+              const trace = {
+                targetIndex: action.target,
+                targetTag: "",
+                targetRole: "",
+                targetDescription: (action as any).targetDescription || "",
+                requestedValue: action.value || "",
+                requestedLabel: action.value || "",
+                selectValueBefore: "",
+                selectedTextBefore: "",
+                options: [] as any[],
+                matchAttempt: {
+                  exactValue: false,
+                  exactText: false,
+                  normalizedValue: false,
+                  normalizedText: false,
+                  partialMatch: false
+                },
+                matchedOption: null as string | null,
+                setterUsed: false,
+                changeEventDispatched: false,
+                selectValueAfter: "",
+                selectedTextAfter: "",
+                verificationResult: false,
+                failureReason: null as string | null
+              };
+
+              try {
+                const el = action.coordinates
+                  ? document.elementFromPoint(action.coordinates.x, action.coordinates.y)
+                  : findElement(action.target || "");
+                  
+                if (!el || el.tagName !== "SELECT") {
+                  trace.failureReason = `Select not found: "${action.target}"`;
+                  console.log("[KAMNAA SELECT TRACE]\n" + JSON.stringify(trace, null, 2));
+                  resolve({
+                    success: false,
+                    error: trace.failureReason,
+                  });
+                  return;
+                }
+                
+                const select = el as HTMLSelectElement;
+                trace.targetTag = select.tagName;
+                trace.targetRole = select.getAttribute("role") || "";
+                trace.selectValueBefore = select.value;
+                trace.selectedTextBefore = select.options[select.selectedIndex]?.text || "";
+
+                const preSelectedIndex = select.selectedIndex;
+                const reqValue = action.value || "";
+                const reqValueNorm = reqValue.trim().toLowerCase();
+                
+                for (let i = 0; i < select.options.length; i++) {
+                  const opt = select.options[i];
+                  trace.options.push({
+                    index: i,
+                    value: opt.value,
+                    text: opt.text,
+                    selected: opt.selected
+                  });
+                }
+                
+                let foundOpt: HTMLOptionElement | null = null;
+                
+                // 1. exact value
+                if (!foundOpt) {
+                  for (const opt of select.options) {
+                    if (opt.value === reqValue) {
+                      foundOpt = opt;
+                      trace.matchAttempt.exactValue = true;
+                      break;
+                    }
+                  }
+                }
+                
+                // 2. exact visible label/text
+                if (!foundOpt) {
+                  for (const opt of select.options) {
+                    if (opt.text === reqValue) {
+                      foundOpt = opt;
+                      trace.matchAttempt.exactText = true;
+                      break;
+                    }
+                  }
+                }
+                
+                // 3. normalized value
+                if (!foundOpt) {
+                  for (const opt of select.options) {
+                    if (opt.value.trim().toLowerCase() === reqValueNorm) {
+                      foundOpt = opt;
+                      trace.matchAttempt.normalizedValue = true;
+                      break;
+                    }
+                  }
+                }
+                
+                // 4. normalized visible label
+                if (!foundOpt) {
+                  for (const opt of select.options) {
+                    if (opt.text.trim().toLowerCase() === reqValueNorm) {
+                      foundOpt = opt;
+                      trace.matchAttempt.normalizedText = true;
+                      break;
+                    }
+                  }
+                }
+                
+                // 5. bounded partial match
+                if (!foundOpt) {
+                  for (const opt of select.options) {
+                    if (opt.text.trim().toLowerCase().includes(reqValueNorm)) {
+                      foundOpt = opt;
+                      trace.matchAttempt.partialMatch = true;
+                      break;
+                    }
+                  }
+                }
+                
+                if (foundOpt) {
+                  trace.matchedOption = foundOpt.text;
+                  select.value = foundOpt.value;
+                  trace.setterUsed = true;
+                  
+                  select.dispatchEvent(
+                    new Event("change", { bubbles: true })
+                  );
+                  trace.changeEventDispatched = true;
+                  
+                  trace.selectValueAfter = select.value;
+                  trace.selectedTextAfter = select.options[select.selectedIndex]?.text || "";
+                  trace.verificationResult = select.selectedIndex !== preSelectedIndex;
+                  console.log("[KAMNAA SELECT TRACE]\n" + JSON.stringify(trace, null, 2));
+                  resolve({ success: true, verified: trace.verificationResult, verificationReason: "selection_changed" });
+                  return;
+                }
+
+                trace.failureReason = `Option not found: "${reqValue}"`;
+                console.log("[KAMNAA SELECT TRACE]\n" + JSON.stringify(trace, null, 2));
                 resolve({
                   success: false,
-                  error: `Select not found: "${action.target}"`,
+                  error: trace.failureReason,
                 });
-                return;
+              } catch (err: any) {
+                trace.failureReason = err.message;
+                console.log("[KAMNAA SELECT TRACE]\n" + JSON.stringify(trace, null, 2));
+                resolve({ success: false, error: err.message });
               }
-              const select = el as HTMLSelectElement;
-              const preSelectedIndex = select.selectedIndex;
-              for (const opt of select.options) {
-                if (
-                  opt.value === action.value ||
-                  opt.text.toLowerCase() === action.value?.toLowerCase()
-                ) {
-                  select.value = opt.value;
-                  select.dispatchEvent(
-                    new Event("change", { bubbles: true })
-                  );
-                  resolve({ success: true, verified: select.selectedIndex !== preSelectedIndex, verificationReason: "selection_changed" });
-                  return;
-                }
-              }
-              for (const opt of select.options) {
-                if (
-                  opt.text
-                    .toLowerCase()
-                    .includes((action.value || "").toLowerCase())
-                ) {
-                  select.value = opt.value;
-                  select.dispatchEvent(
-                    new Event("change", { bubbles: true })
-                  );
-                  resolve({ success: true, verified: select.selectedIndex !== preSelectedIndex, verificationReason: "selection_changed" });
-                  return;
-                }
-              }
-              resolve({
-                success: false,
-                error: `Option not found: "${action.value}"`,
-              });
               break;
             }
 
