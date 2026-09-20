@@ -642,6 +642,17 @@ export async function executeFullPipeline(
 
     const sanitizeStep = addStep("sanitize");
     const sanitizedContext = await runStep(sanitizeStep, async () => {
+      // Diagnostic to see exactly what elements arrived from PERCEIVE_PAGE
+      console.log("[KAMNAA PAGE STATE ELEMENTS]\n" + JSON.stringify({
+        count: domData.elements.length,
+        elements: domData.elements.map((e: any, index: number) => ({
+          index,
+          tag: e.tag,
+          role: e.role,
+          text: (e.label || "").substring(0, 50),
+          visibilityState: (e as any).visibilityState || (e.isVisible ? "visible" : "hidden")
+        }))
+      }, null, 2));
       return buildSanitizedContext(domData, piiDetection, input.taskDescription, input.dataContext);
     });
 
@@ -691,6 +702,25 @@ export async function executeFullPipeline(
       }
 
       // Anything the local planner cannot handle goes to an LLM.
+      
+      const elements = sanitizedContext.pageStructure.elements;
+      const elementCount = elements.length;
+      
+      const saveAsDraftTarget = elements.find(e => (e.label || "").toLowerCase().includes("save as draft"));
+      const previewAppTarget = elements.find(e => (e.label || "").toLowerCase().includes("preview application"));
+      const existingPassportTarget = elements.find(e => (e.label || "").toLowerCase().includes("existing passport number"));
+      
+      console.log("[KAMNAA PLANNER CONTEXT CHECK]\n" + JSON.stringify({
+        elementCount,
+        saveAsDraftPresent: !!saveAsDraftTarget,
+        saveAsDraftIndex: saveAsDraftTarget ? elements.indexOf(saveAsDraftTarget) : -1,
+        saveAsDraftRole: saveAsDraftTarget?.role,
+        saveAsDraftTag: saveAsDraftTarget?.tag,
+        saveAsDraftVisibility: (saveAsDraftTarget as any)?.visibilityState || (saveAsDraftTarget?.isDisabled ? "disabled" : "visible"),
+        previewApplicationPresent: !!previewAppTarget,
+        existingPassportPresent: !!existingPassportTarget
+      }, null, 2));
+
       console.log("[KAMNAA][PIPELINE] calling generatePlanWithBestProvider...");
       const llmResult = await generatePlanWithBestProvider(
         planningTask,
@@ -699,7 +729,17 @@ export async function executeFullPipeline(
         input.recentTasks
       );
       console.log(`[KAMNAA][PIPELINE] generatePlanWithBestProvider returned: success=${llmResult.success} steps=${llmResult.steps.length} provider=${llmResult.provider}`);
+      
       if (llmResult.success && llmResult.steps.length > 0) {
+        const firstStep = llmResult.steps[0];
+        console.log("[KAMNAA PLANNER OUTPUT]\n" + JSON.stringify({
+          actionCount: llmResult.steps.length,
+          firstActionType: firstStep?.action?.type,
+          firstTarget: firstStep?.action?.target,
+          firstTargetDescription: (firstStep?.action as any)?.targetDescription,
+          firstTargetRole: elements.find((_, i) => `[${i}]` === firstStep?.action?.target)?.role,
+          firstTargetIndex: firstStep?.action?.target ? parseInt(firstStep.action.target.match(/\d+/)?.[0] || "-1", 10) : -1
+        }, null, 2));
         return llmResult;
       }
 
@@ -727,7 +767,7 @@ export async function executeFullPipeline(
       planResult = planResultData;
       
       const safePlanDebug = planResult.steps.map((s: any, idx: number) => 
-        `step ${idx+1}:\naction=${s.action.type}\ntarget="${s.action.target}"\ntargetDescription="${s.action.targetDescription || 'MISSING'}"`
+        `step ${idx+1}:\naction=${s.action.type}\ntarget="${s.action.target}"\ntargetDescription="${(s.action as any).targetDescription || 'MISSING'}"`
       ).join('\n\n');
       console.log(`[KAMNAA PLAN DEBUG]\n${safePlanDebug}`);
 

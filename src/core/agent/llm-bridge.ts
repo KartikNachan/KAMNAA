@@ -285,8 +285,32 @@ function buildPlanningPrompt(
   pageState: PageState,
   dataContext?: Record<string, string>
 ): string {
-  const elements = pageState.elements.slice(0, 30).map((e, i) => {
-    const desc = `[${i}] <${e.tag}> role="${e.role}" text="${(e.text || e.label || "").slice(0, 50)}" type="${e.type}" ${e.isDisabled ? "DISABLED" : ""}`;
+  // Principled element budget: score by relevance to task, then restore DOM index order
+  const taskLower = taskDescription.toLowerCase();
+  const scoredElements = pageState.elements.map((e, index) => {
+    let score = 0;
+    const text = (e.text || e.label || "").toLowerCase();
+    
+    if (text && text.length > 2) {
+      if (taskLower.includes(text)) score += 100;
+      else if (text.includes(taskLower)) score += 50;
+      else if (taskLower.split(/\s+/).some((w: string) => w.length > 3 && text.includes(w))) score += 20;
+    }
+    
+    const visState = (e as any).visibilityState || (e.isVisible ? "visible" : "hidden");
+    if (visState === "visible") score += 5;
+    else if (visState === "offscreen") score += 2;
+    
+    return { e, index, score, visState };
+  });
+
+  const topElements = scoredElements
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 60)
+    .sort((a, b) => a.index - b.index);
+
+  const elements = topElements.map(({ e, index, visState }) => {
+    const desc = `[${index}] <${e.tag}> role="${e.role}" text="${(e.text || e.label || "").slice(0, 50)}" type="${e.type}" visibility="${visState}" ${e.isDisabled ? "DISABLED" : ""}`;
     return desc;
   }).join("\n");
 

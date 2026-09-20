@@ -118,11 +118,11 @@ function extractInteractiveElements(): PageElement[] {
     seen.add(el);
 
     const rect = el.getBoundingClientRect();
-    const isVisible = isElementVisible(el, rect);
+    const vis = getElementVisibility(el, rect);
     const isDisabled = isElementDisabled(el);
 
-    // Skip invisible elements (unless they're important like modals)
-    if (!isVisible && !isModalElement(el)) return;
+    // Skip unrendered elements (unless they're important like modals)
+    if (!vis.isRendered && !isModalElement(el)) return;
 
     const text = getElementText(el);
     const label = getElementLabel(el);
@@ -149,7 +149,8 @@ function extractInteractiveElements(): PageElement[] {
         right: rect.right,
         toJSON: rect.toJSON.bind(rect),
       } as DOMRect,
-      isVisible,
+      isVisible: vis.visibilityState === "visible",
+      visibilityState: vis.visibilityState,
       isInteractive: true,
       isDisabled,
       confidence: 0.95, // DOM elements have high confidence
@@ -174,7 +175,8 @@ function extractForms(): FormData[] {
 
     inputs.forEach((input) => {
       const rect = input.getBoundingClientRect();
-      if (!isElementVisible(input, rect)) return;
+      const vis = getElementVisibility(input, rect);
+      if (!vis.isRendered) return;
 
       // Check for honeypot
       if (isHoneypot(input)) return;
@@ -278,20 +280,24 @@ function analyzePageMetadata(
 
 // ── Helpers ──────────────────────────────────────────────────
 
-function isElementVisible(el: Element, rect: DOMRect): boolean {
-  if (rect.width === 0 || rect.height === 0) return false;
+function getElementVisibility(el: Element, rect: DOMRect): { isRendered: boolean, visibilityState: "visible" | "offscreen" | "hidden" } {
+  if (rect.width === 0 || rect.height === 0) return { isRendered: false, visibilityState: "hidden" };
 
   const style = window.getComputedStyle(el);
-  if (style.display === "none" || style.visibility === "hidden") return false;
-  if (parseFloat(style.opacity) < 0.1) return false;
+  if (style.display === "none" || style.visibility === "hidden") return { isRendered: false, visibilityState: "hidden" };
+  if (parseFloat(style.opacity) < 0.1) return { isRendered: false, visibilityState: "hidden" };
 
   // Check if element is in viewport (with some margin)
   const viewportHeight = window.innerHeight;
   const viewportWidth = window.innerWidth;
-  if (rect.bottom < -100 || rect.top > viewportHeight + 100) return false;
-  if (rect.right < -100 || rect.left > viewportWidth + 100) return false;
+  if (rect.bottom < -100 || rect.top > viewportHeight + 100) return { isRendered: true, visibilityState: "offscreen" };
+  if (rect.right < -100 || rect.left > viewportWidth + 100) return { isRendered: true, visibilityState: "offscreen" };
 
-  return true;
+  return { isRendered: true, visibilityState: "visible" };
+}
+
+function isElementVisible(el: Element, rect: DOMRect): boolean {
+  return getElementVisibility(el, rect).visibilityState === "visible";
 }
 
 function isElementDisabled(el: Element): boolean {

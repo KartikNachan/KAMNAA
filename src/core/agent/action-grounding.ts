@@ -164,9 +164,28 @@ export function groundAction(
         return { success: false, groundedTarget: "", reason: "target_disabled", diagnostic: diagnosticLog };
       }
       
-      if (!bestMatch.el.isVisible) {
+      const visibilityState = bestMatch.el.visibilityState || (bestMatch.el.isVisible ? "visible" : "hidden");
+      let groundingDecision = visibilityState === "offscreen" ? "allowed_offscreen" : (visibilityState === "visible" ? "allowed_visible" : "target_hidden");
+      let rejectReason = null;
+
+      if (!bestMatch.el.isVisible && visibilityState !== "offscreen") {
+        groundingDecision = "target_hidden";
+        rejectReason = "target_hidden";
+      }
+
+      console.log("[KAMNAA GROUNDING TARGET]\n" + JSON.stringify({
+        target: `[${bestMatch.index}]`,
+        targetDescription: (plannedAction.action as any).targetDescription || "",
+        targetRole: bestMatch.el.role,
+        targetIndex: bestMatch.index,
+        targetTag: bestMatch.el.tag,
+        visibilityState: visibilityState,
+        groundingDecision: groundingDecision
+      }, null, 2));
+      
+      if (rejectReason) {
         console.log(`[KAMNAA DIAGNOSTIC] Grounding:`, JSON.stringify(diagnosticLog));
-        return { success: false, groundedTarget: "", reason: "target_hidden", diagnostic: diagnosticLog };
+        return { success: false, groundedTarget: "", reason: rejectReason, diagnostic: diagnosticLog };
       }
 
       console.log(`[KAMNAA DIAGNOSTIC] Grounding:`, JSON.stringify(diagnosticLog));
@@ -216,6 +235,18 @@ export function groundAction(
   // we pass the index and let the content script search the full DOM (including hidden/scrolled elements).
   if (targetDesc && typeof targetDesc === "string" && targetDesc.trim()) {
     diagnosticLog.groundingMethod = "deferred_to_content_script_fallback";
+    
+    // Inherit the tag and role from the original element (if known) so that
+    // pre-execution semantic validation does not reject valid off-screen elements.
+    const originalEl = diagnosticLog.originalTargetIndex !== null && originalDomData?.elements 
+      ? originalDomData.elements[diagnosticLog.originalTargetIndex] 
+      : null;
+      
+    if (originalEl) {
+      diagnosticLog.targetTag = originalEl.tag;
+      diagnosticLog.targetRole = originalEl.role;
+    }
+    
     console.log(`[KAMNAA DIAGNOSTIC] Grounding deferred to fallback:`, JSON.stringify(diagnosticLog));
     return {
       success: true, // Let the content script execute Action fallback

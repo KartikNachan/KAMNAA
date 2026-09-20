@@ -17,6 +17,7 @@ export interface PageElement {
   type: string;
   rect: DOMRect;
   isVisible: boolean;
+  visibilityState?: "visible" | "offscreen" | "hidden";
   isInteractive: boolean;
   isDisabled: boolean;
   confidence: number;

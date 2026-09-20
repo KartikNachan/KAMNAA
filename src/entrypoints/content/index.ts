@@ -357,7 +357,8 @@ export default defineContentScript({
         )
           return;
 
-        if (rect.bottom < -100 || rect.top > window.innerHeight + 100) return;
+        const isOffscreen = rect.bottom < -100 || rect.top > window.innerHeight + 100;
+        const visibilityState = isOffscreen ? "offscreen" : "visible";
 
         const text =
           el.getAttribute("aria-label") ||
@@ -390,7 +391,8 @@ export default defineContentScript({
             right: rect.right,
             toJSON: () => ({}),
           } as DOMRect,
-          isVisible: true,
+          isVisible: !isOffscreen,
+          visibilityState,
           isInteractive: true,
           isDisabled: el.hasAttribute("disabled"),
           confidence: 0.95,
@@ -446,6 +448,15 @@ export default defineContentScript({
           };
         }),
       }));
+
+      const saveAsDraftTarget = elements.find(e => (e.text || e.label || "").toLowerCase().includes("save as draft"));
+      console.log("[KAMNAA OFFSCREEN TARGET CHECK]\n" + JSON.stringify({
+        saveAsDraftFound: !!saveAsDraftTarget,
+        saveAsDraftIndex: saveAsDraftTarget ? elements.indexOf(saveAsDraftTarget) : -1,
+        saveAsDraftTag: saveAsDraftTarget?.tag,
+        saveAsDraftRole: saveAsDraftTarget?.role,
+        saveAsDraftVisibility: (saveAsDraftTarget as any)?.visibilityState
+      }, null, 2));
 
       const pageHTML = document.documentElement.outerHTML;
       const pageText = document.body?.innerText || "";
@@ -655,6 +666,8 @@ export default defineContentScript({
     // ACTION EXECUTION — Production-grade
     // ════════════════════════════════════════════════════════
 
+    let executeActionInvocationCount = 0;
+
     // DOM settle: wait for mutations to stop after an action
     function waitForDOMSettle(maxWaitMs = 2000): Promise<void> {
       return new Promise((resolve) => {
@@ -679,134 +692,361 @@ export default defineContentScript({
       });
     }
 
+    function getScrollableAncestor(el: Element | null): Element | Window {
+      if (!el) return window;
+      let parent = el.parentElement;
+      while (parent) {
+        const style = window.getComputedStyle(parent);
+        const overflowY = style.overflowY;
+        if (overflowY === "auto" || overflowY === "scroll") {
+          if (parent.scrollHeight > parent.clientHeight) {
+            return parent;
+          }
+        }
+        parent = parent.parentElement;
+      }
+      return window;
+    }
+
+    function isElementInViewport(el: Element): boolean {
+      const rect = el.getBoundingClientRect();
+      const vh = window.innerHeight || document.documentElement.clientHeight;
+      const vw = window.innerWidth || document.documentElement.clientWidth;
+      const minIntersectY = Math.min(5, rect.height / 2);
+      const minIntersectX = Math.min(5, rect.width / 2);
+      return (
+        rect.bottom > minIntersectY &&
+        rect.top < vh - minIntersectY &&
+        rect.right > minIntersectX &&
+        rect.left < vw - minIntersectX &&
+        rect.width > 0 &&
+        rect.height > 0
+      );
+    }
+
+    function scrollElementIntoView(el: Element, container: Element | Window) {
+      if (container === window) {
+        el.scrollIntoView({ behavior: "auto", block: "center", inline: "center" });
+      } else {
+        const rect = el.getBoundingClientRect();
+        const containerRect = (container as Element).getBoundingClientRect();
+        const scrollTop = (container as Element).scrollTop;
+        const relativeTop = rect.top - containerRect.top;
+        const targetScroll = scrollTop + relativeTop - (containerRect.height / 2) + (rect.height / 2);
+        (container as Element).scrollTo({ top: targetScroll, behavior: "auto" });
+      }
+    }
+
+    async function resolveAndScrollTarget(action: AgentAction): Promise<{ el: Element | null, error?: string }> {
+      let el = action.coordinates
+        ? document.elementFromPoint(action.coordinates.x, action.coordinates.y)
+        : findElement(action.target || "");
+        
+      if (!el) {
+        return { el: null, error: `Element not found: "${action.target}"` };
+      }
+
+      const initialRect = el.getBoundingClientRect();
+      const initialVisibility = isElementInViewport(el);
+      const scrollContainer = getScrollableAncestor(el);
+      const scrollContainerTag = scrollContainer === window ? "window" : (scrollContainer as Element).tagName;
+      
+      let scrollRequested = false;
+      let targetReResolved = false;
+      let scrollPositionBefore = scrollContainer === window ? window.scrollY : (scrollContainer as Element).scrollTop;
+      let scrollPositionAfter = scrollPositionBefore;
+      
+      if (!initialVisibility) {
+        scrollRequested = true;
+        
+        const rect = el.getBoundingClientRect();
+        const scrollTop = scrollContainer === window ? window.scrollY : (scrollContainer as Element).scrollTop;
+        const relativeTop = rect.top - (scrollContainer === window ? 0 : (scrollContainer as Element).getBoundingClientRect().top);
+        const targetScroll = scrollTop + relativeTop - ((scrollContainer === window ? window.innerHeight : (scrollContainer as Element).clientHeight) / 2) + (rect.height / 2);
+        const scrollDirection = targetScroll > scrollTop ? "down" : "up";
+
+        console.log("[KAMNAA SCROLL TARGET]\n" + JSON.stringify({
+          requestedTarget: action.target,
+          targetDescription: (action as any).targetDescription || "",
+          resolvedIndex: action.target ? parseInt(action.target.match(/\d+/)?.[0] || "-1", 10) : -1,
+          resolvedTag: el.tagName,
+          resolvedRole: el.getAttribute("role") || inferRole(el),
+          rectTop: rect.top,
+          rectBottom: rect.bottom,
+          viewportHeight: window.innerHeight,
+          scrollTop,
+          scrollContainer: scrollContainerTag,
+          scrollDirection
+        }, null, 2));
+
+        scrollElementIntoView(el, scrollContainer);
+        
+        await new Promise(r => requestAnimationFrame(r));
+        await new Promise(r => setTimeout(r, 200));
+        
+        scrollPositionAfter = scrollContainer === window ? window.scrollY : (scrollContainer as Element).scrollTop;
+        
+        const freshEl = action.coordinates
+          ? document.elementFromPoint(action.coordinates.x, action.coordinates.y)
+          : findElement(action.target || "");
+          
+        if (freshEl && freshEl !== el) {
+          el = freshEl;
+          targetReResolved = true;
+        }
+      }
+      
+      const rectAfterScroll = el ? el.getBoundingClientRect() : null;
+      const visibleAfterScroll = el ? isElementInViewport(el) : false;
+      
+      console.log("[KAMNAA SCROLL]", JSON.stringify({
+        actionIndex: (action as any)._meta?.stepIndex !== undefined ? (action as any)._meta.stepIndex + 1 : 1,
+        targetText: el ? (el.textContent?.substring(0, 50).trim() || (el as HTMLInputElement).value || "") : "",
+        targetIndexBeforeScroll: action.target,
+        initialRect: { top: initialRect.top, bottom: initialRect.bottom, left: initialRect.left, right: initialRect.right },
+        initialVisibility,
+        scrollContainer: scrollContainerTag,
+        scrollRequested,
+        scrollPositionBefore,
+        rectAfterScroll: rectAfterScroll ? { top: rectAfterScroll.top, bottom: rectAfterScroll.bottom, left: rectAfterScroll.left, right: rectAfterScroll.right } : null,
+        scrollPositionAfter,
+        visibleAfterScroll,
+        targetReResolved,
+        finalTargetIndex: action.target
+      }));
+      
+      if (!el || !document.body.contains(el)) {
+        return { el: null, error: `Target lost after scroll: "${action.target}"` };
+      }
+      if ((el as any).disabled || el.hasAttribute("disabled")) {
+        return { el: null, error: `Element is disabled: "${action.target}"` };
+      }
+      if (!visibleAfterScroll) {
+        return { el: null, error: `Target not visible after scroll: "${action.target}"` };
+      }
+      
+      return { el };
+    }
+
     async function executeAction(
       action: AgentAction
     ): Promise<{ success: boolean; error?: string; verified?: boolean; verificationReason?: string }> {
-      return new Promise((resolve) => {
+      executeActionInvocationCount++;
+      return new Promise(async (resolve) => {
         try {
           switch (action.type) {
             case "click": {
-              const el = action.coordinates
-                ? document.elementFromPoint(
-                    action.coordinates.x,
-                    action.coordinates.y
-                  )
-                : findElement(action.target || "");
-              if (!el) {
-                resolve({
-                  success: false,
-                  error: `Element not found: "${action.target}"`,
-                });
+              let clickDispatchInvocationCount = 0;
+              clickDispatchInvocationCount++;
+              const res = await resolveAndScrollTarget(action);
+              if (res.error || !res.el) {
+                resolve({ success: false, error: res.error });
                 return;
               }
-              if ((el as any).disabled || el.hasAttribute("disabled")) {
-                resolve({ success: false, error: `Element is disabled: "${action.target}"` });
-                return;
+              const el = res.el;
+
+              const groundedTag = el.tagName;
+              const groundedRole = el.getAttribute("role") || "";
+              const targetDescription = (action as any).targetDescription || "";
+              const plannerTarget = action.target || "";
+              
+              // We infer the original visibility state from isElementRendered & isVisible
+              const visibilityState = isElementRendered(el) ? (isVisible(el) ? "visible" : "offscreen") : "hidden";
+              
+              console.log("[KAMNAA TARGET TRACE]\n" + JSON.stringify({
+                plannerTarget,
+                targetDescription,
+                groundedTarget: plannerTarget,
+                groundedRole,
+                groundedTag,
+                visibilityState,
+                resolvedIndex: null // not easily computable here without searching all elements
+              }, null, 2));
+
+              // Explicit safety check: reject if we are about to click a non-button input when a button was requested
+              if (targetDescription) {
+                const reqNorm = targetDescription.toLowerCase();
+                if (reqNorm.includes("save as draft") || reqNorm.includes("preview application") || reqNorm.includes("button")) {
+                  if (groundedTag === "INPUT" && !["submit", "button", "reset"].includes(el.getAttribute("type") || "")) {
+                     resolve({ success: false, error: `TARGET_REJECTED: Requested '${targetDescription}' but resolved to non-button <${groundedTag}>` });
+                     return;
+                  }
+                }
               }
-              if (!isVisible(el)) {
-                resolve({ success: false, error: `Element is not visible: "${action.target}"` });
-                return;
-              }
+
               const preUrl = window.location.href;
               const preHtml = el.outerHTML;
               const preRect = el.getBoundingClientRect();
               const preElementCount = document.querySelectorAll('*').length;
               const wasChecked = isCheckable(el) ? (el as HTMLInputElement).checked : undefined;
+
+              const rect = el.getBoundingClientRect();
+              const x = rect.x + rect.width / 2;
+              const y = rect.y + rect.height / 2;
               
-              const preTestState = document.body.dataset.kamnaaTestState || null;
+              const elementAtCenter = document.elementFromPoint(x, y);
+              let centerCovered = false;
+              if (elementAtCenter) {
+                if (elementAtCenter !== el && !el.contains(elementAtCenter)) {
+                   centerCovered = true;
+                }
+              }
 
-              el.scrollIntoView({ behavior: "smooth", block: "center" });
-              setTimeout(async () => {
-                const rect = el.getBoundingClientRect();
-                const x = rect.x + rect.width / 2;
-                const y = rect.y + rect.height / 2;
-                for (const evt of [
-                  "pointerdown",
-                  "mousedown",
-                  "pointerup",
-                  "mouseup",
-                  "click",
-                ]) {
-                  el.dispatchEvent(
-                    new MouseEvent(evt, {
-                      bubbles: true,
-                      cancelable: true,
-                      clientX: x,
-                      clientY: y,
-                      button: 0,
-                    })
-                  );
-                }
-                if ("focus" in el) (el as HTMLElement).focus();
-                // Wait for DOM to settle after click (handles SPA navigation, dropdowns, etc.)
-                await waitForDOMSettle(1500);
+              console.log("[KAMNAA CLICK DIAGNOSTICS]", JSON.stringify({
+                targetIndex: action.target,
+                targetText: el.textContent?.substring(0, 50).trim() || "",
+                targetTag: el.tagName,
+                isConnected: el.isConnected,
+                rect: { top: rect.top, bottom: rect.bottom, left: rect.left, right: rect.right },
+                visible: isElementInViewport(el),
+                disabled: (el as any).disabled || el.hasAttribute("disabled"),
+                pointerEvents: window.getComputedStyle(el).pointerEvents,
+                elementAtCenter: elementAtCenter ? elementAtCenter.tagName + (elementAtCenter.id ? '#' + elementAtCenter.id : '') + (elementAtCenter.className ? '.' + elementAtCenter.className.replace(/ /g, '.') : '') : null,
+                centerCovered,
+                coveredByKamnaa: elementAtCenter ? !!(elementAtCenter.closest('#kamnaa-root, .kamnaa-panel') || elementAtCenter.tagName.toLowerCase().includes('kamnaa')) : false,
+                freshResolution: true
+              }));
 
-                // VERIFICATION
-                const postTestState = document.body.dataset.kamnaaTestState || null;
-                
-                if (preTestState && postTestState && preTestState !== postTestState) {
-                  resolve({ success: true, verified: true, verificationReason: "test-event-counter" });
-                  return;
+              const clickTrace: any = {
+                targetText: el.textContent?.substring(0, 50).trim() || "",
+                tagName: el.tagName,
+                semanticRole: el.getAttribute("role") || el.tagName,
+                isConnected: el.isConnected,
+                rect: { top: rect.top, bottom: rect.bottom, left: rect.left, right: rect.right },
+                centerX: x,
+                centerY: y,
+                elementAtCenter: elementAtCenter ? elementAtCenter.tagName : null,
+                isCovered: centerCovered,
+                pointerEvents: window.getComputedStyle(el).pointerEvents,
+                disabled: (el as any).disabled || el.hasAttribute("disabled"),
+                syntheticEventsDispatched: true,
+                nativeClickCalled: true,
+                nativeClickReturned: false,
+                clickTimestamp: Date.now()
+              };
+
+              const eventTrace = {
+                pointerdownReceived: 0,
+                mousedownReceived: 0,
+                mouseupReceived: 0,
+                pointerupReceived: 0,
+                clickReceived: 0
+              };
+
+              const trackEvent = (e: Event) => { (eventTrace as any)[e.type + "Received"]++; };
+              el.addEventListener("pointerdown", trackEvent);
+              el.addEventListener("mousedown", trackEvent);
+              el.addEventListener("mouseup", trackEvent);
+              el.addEventListener("pointerup", trackEvent);
+              el.addEventListener("click", trackEvent);
+
+              const preTestStateStr = document.body.dataset.kamnaaTestState || null;
+              const preTestStateObj = preTestStateStr ? JSON.parse(preTestStateStr) : null;
+
+              for (const evt of [
+                "pointerdown",
+                "mousedown",
+                "pointerup",
+                "mouseup",
+              ]) {
+                el.dispatchEvent(
+                  new MouseEvent(evt, {
+                    bubbles: true,
+                    cancelable: true,
+                    clientX: x,
+                    clientY: y,
+                    button: 0,
+                  })
+                );
+              }
+              if (typeof (el as any).click === "function") (el as any).click();
+              
+              clickTrace.nativeClickReturned = true;
+              console.log("[KAMNAA CLICK TRACE]", JSON.stringify(clickTrace));
+              console.log("[KAMNAA CLICK EVENT TRACE]\n" + JSON.stringify(eventTrace, null, 2));
+
+              el.removeEventListener("pointerdown", trackEvent);
+              el.removeEventListener("mousedown", trackEvent);
+              el.removeEventListener("mouseup", trackEvent);
+              el.removeEventListener("pointerup", trackEvent);
+              el.removeEventListener("click", trackEvent);
+
+              if (typeof (el as any).focus === "function") (el as any).focus();
+              
+              await waitForDOMSettle(1500);
+
+              const postTestStateStr = document.body.dataset.kamnaaTestState || null;
+              const postTestStateObj = postTestStateStr ? JSON.parse(postTestStateStr) : null;
+              
+              console.log("[KAMNAA CLICK DISPATCH SUMMARY]\n" + JSON.stringify({
+                actionId: (action as any)._meta?.stepIndex !== undefined ? (action as any)._meta.stepIndex + 1 : 1,
+                targetIndex: action.target,
+                syntheticPointerEventsDispatched: true,
+                syntheticMouseEventsDispatched: true,
+                syntheticClickEventsDispatched: true,
+                nativeClickCalled: true,
+                nativeClickReturned: clickTrace.nativeClickReturned,
+                executeActionInvocationCount,
+                clickDispatchInvocationCount,
+                testStateBefore: {
+                  saveAsDraftClicks: preTestStateObj?.saveAsDraftClicks,
+                  lastAction: preTestStateObj?.lastAction
+                },
+                testStateAfter: {
+                  saveAsDraftClicks: postTestStateObj?.saveAsDraftClicks,
+                  lastAction: postTestStateObj?.lastAction
                 }
-                
-                const postUrl = window.location.href;
-                if (postUrl !== preUrl) {
-                  resolve({ success: true, verified: true, verificationReason: "url_changed" });
-                  return;
-                }
-                if (!document.body.contains(el)) {
-                  resolve({ success: true, verified: true, verificationReason: "target_disappeared" });
-                  return;
-                }
-                const postHtml = el.outerHTML;
-                if (postHtml !== preHtml) {
-                  resolve({ success: true, verified: true, verificationReason: "target_mutated" });
-                  return;
-                }
-                if (isCheckable(el) && (el as HTMLInputElement).checked !== wasChecked) {
-                  resolve({ success: true, verified: true, verificationReason: "checkbox_toggled" });
-                  return;
-                }
-                const postElementCount = document.querySelectorAll('*').length;
-                if (Math.abs(postElementCount - preElementCount) > 2) {
-                  resolve({ success: true, verified: true, verificationReason: "dom_mutated" });
-                  return;
-                }
-                const postRect = el.getBoundingClientRect();
-                if (Math.abs(postRect.x - preRect.x) > 5 || Math.abs(postRect.y - preRect.y) > 5) {
-                  resolve({ success: true, verified: true, verificationReason: "target_moved" });
-                  return;
-                }
-                
-                // If no observable changes, we can still consider it executed but maybe not verified
-                // However, some clicks just submit data silently. We mark verified: false to allow retry/replan.
-                resolve({ success: true, verified: false, verificationReason: "no_observable_change" });
-              }, 300);
+              }, null, 2));
+              
+              
+              if (preTestStateStr && postTestStateStr && preTestStateStr !== postTestStateStr) {
+                resolve({ success: true, verified: true, verificationReason: "test-event-counter" });
+                return;
+              }
+              
+              const postUrl = window.location.href;
+              if (postUrl !== preUrl) {
+                resolve({ success: true, verified: true, verificationReason: "url_changed" });
+                return;
+              }
+              if (!document.body.contains(el)) {
+                resolve({ success: true, verified: true, verificationReason: "target_disappeared" });
+                return;
+              }
+              const postHtml = el.outerHTML;
+              if (postHtml !== preHtml) {
+                resolve({ success: true, verified: true, verificationReason: "target_mutated" });
+                return;
+              }
+              if (isCheckable(el) && (el as HTMLInputElement).checked !== wasChecked) {
+                resolve({ success: true, verified: true, verificationReason: "checkbox_toggled" });
+                return;
+              }
+              const postElementCount = document.querySelectorAll('*').length;
+              if (Math.abs(postElementCount - preElementCount) > 2) {
+                resolve({ success: true, verified: true, verificationReason: "dom_mutated" });
+                return;
+              }
+              const postRect = el.getBoundingClientRect();
+              if (Math.abs(postRect.x - preRect.x) > 5 || Math.abs(postRect.y - preRect.y) > 5) {
+                resolve({ success: true, verified: true, verificationReason: "target_moved" });
+                return;
+              }
+              
+              resolve({ success: true, verified: false, verificationReason: "no_observable_change" });
               break;
             }
 
             case "type": {
-              const el = action.coordinates
-                ? document.elementFromPoint(action.coordinates.x, action.coordinates.y)
-                : findElement(action.target || "");
-              if (!el) {
-                resolve({
-                  success: false,
-                  error: `Element not found: "${action.target}"`,
-                });
+              const res = await resolveAndScrollTarget(action);
+              if (res.error || !res.el) {
+                resolve({ success: false, error: res.error });
                 return;
               }
-              if ((el as any).disabled || el.hasAttribute("disabled")) {
-                resolve({ success: false, error: `Element is disabled: "${action.target}"` });
-                return;
-              }
-              if (!isVisible(el)) {
-                resolve({ success: false, error: `Element is not visible: "${action.target}"` });
-                return;
-              }
+              const el = res.el;
+
               const input = el as HTMLInputElement;
               input.focus();
-              el.scrollIntoView({ behavior: "smooth", block: "center" });
               input.select();
 
               // Native setter hack: bypasses React/Vue synthetic event system
@@ -1380,7 +1620,7 @@ export default defineContentScript({
       rawElements.forEach((el) => {
         if (seen.has(el)) return;
         seen.add(el);
-        if (!isVisible(el)) return;
+        if (!isElementRendered(el)) return;
         interactiveElementCache!.push(el);
       });
       return interactiveElementCache;
@@ -1621,6 +1861,15 @@ export default defineContentScript({
       return matrix[b.length][a.length];
     }
 
+    function isElementRendered(el: Element): boolean {
+      const rect = el.getBoundingClientRect();
+      if (rect.width === 0 || rect.height === 0) return false;
+      const style = window.getComputedStyle(el);
+      if (style.display === "none" || style.visibility === "hidden") return false;
+      if (parseFloat(style.opacity) < 0.1) return false;
+      return true;
+    }
+
     function isVisible(el: Element): boolean {
       const rect = el.getBoundingClientRect();
       if (rect.width === 0 || rect.height === 0) return false;
@@ -1629,6 +1878,7 @@ export default defineContentScript({
         return false;
       if (parseFloat(style.opacity) < 0.1) return false;
       if (rect.bottom < -100 || rect.top > window.innerHeight + 100) return false;
+      if (rect.right < -100 || rect.left > window.innerWidth + 100) return false;
       return true;
     }
 
