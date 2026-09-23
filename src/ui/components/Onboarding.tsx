@@ -68,23 +68,23 @@ export function Onboarding({ onComplete }: OnboardingProps) {
         {!isLast && (
           <button
             onClick={handleSkip}
-            className="absolute top-4 right-4 text-[10px] font-mono uppercase text-gray-500 hover:text-white transition-colors"
+            className="absolute top-4 right-4 text-[10px] font-mono uppercase text-[var(--text-secondary)] hover:text-[var(--surface)] transition-colors"
           >
             Skip
           </button>
         )}
 
         <div className="space-y-3 text-center">
-          <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[10px] font-mono uppercase font-medium">
+          <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded bg-[var(--surface)] text-emerald-400 border border-emerald-500/20 text-[10px] font-mono uppercase font-medium">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse-dot" />
             {step.badge}
           </div>
 
-          <h1 className="text-3xl text-white font-serif-title tracking-tight leading-tight">
+          <h1 className="text-3xl text-[var(--surface)] font-serif-title tracking-tight leading-tight">
             {step.title}
           </h1>
 
-          <p className="text-xs text-gray-400 font-light leading-relaxed">
+          <p className="text-xs text-[var(--text-secondary)] font-light leading-relaxed">
             {step.description}
           </p>
         </div>
@@ -98,8 +98,8 @@ export function Onboarding({ onComplete }: OnboardingProps) {
                 i === currentStep
                   ? "w-6 bg-white"
                   : i < currentStep
-                    ? "w-1.5 bg-gray-500"
-                    : "w-1.5 bg-gray-800"
+                    ? "w-1.5 bg-[var(--surface)]"
+                    : "w-1.5 bg-[var(--surface)]"
               }`}
             />
           ))}
@@ -111,7 +111,7 @@ export function Onboarding({ onComplete }: OnboardingProps) {
           className={`w-full py-2.5 text-xs font-mono uppercase font-semibold transition-all ${
             isLast
               ? "hallmark-button-primary"
-              : "hallmark-button text-gray-200 hover:text-white"
+              : "hallmark-button text-[var(--text-secondary)] hover:text-[var(--surface)]"
           }`}
         >
           {isLast ? "Setup AI Provider" : "Continue"}

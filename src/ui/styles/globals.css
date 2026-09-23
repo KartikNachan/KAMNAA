@@ -13,17 +13,18 @@
  * ───────────────────────────────────────────────────────────── */
 
 :root {
-  --color-paper: #0A0A0A;
-  --color-paper-2: #111111;
-  --color-paper-3: #111111;
-  --color-ink: #F5F5F5;
-  --color-ink-2: #F5F5F5;
-  --color-ink-mute: #8A8A8A;
-  --color-rule: #242424;
-  --color-hairline: #242424;
-  --color-accent: #22D3EE;
-  --color-teal: #4ADE80;
-  --color-error: #F87171;
+  --background:       #F7F4EC;
+  --surface:          #FFFDF8;
+  --border:           #E4DED2;
+  
+  --text-primary:     #07142F;
+  --text-secondary:   #667085;
+  
+  --accent-primary:   #006EC2;
+  --accent-soft:      #52D2E4;
+  
+  --success:          #299B63;
+  --error:            #D94A5B;
 
   --font-display: "Big Shoulders Display", sans-serif;
   --font-body: "Fraunces", Georgia, serif;
@@ -37,8 +38,8 @@
 html, body {
   margin: 0;
   padding: 0;
-  background-color: var(--color-paper);
-  color: var(--color-ink-2);
+  background-color: var(--background);
+  color: var(--text-secondary);
   font-family: var(--font-body);
   font-size: 14px;
   line-height: 1.6;
@@ -79,93 +80,82 @@ body::after {
 
 /* Hallmark Custom-04 Broadsheet Cards & Controls */
 .hallmark-card {
-  background: var(--color-paper);
-  border: 2px solid var(--color-ink);
-  box-shadow: 3px 3px 0px var(--color-ink);
-  color: var(--color-ink);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text-primary);
 }
 
 .hallmark-card-accent {
-  background: var(--color-accent);
-  color: var(--color-paper);
-  border: 2px solid var(--color-ink);
-  box-shadow: 3px 3px 0px var(--color-ink);
+  background: var(--accent-soft);
+  color: var(--text-primary);
+  border: 1px solid var(--border);
 }
 
 .hallmark-input {
-  background: var(--color-paper-2);
-  border: 2px solid var(--color-ink);
-  color: var(--color-ink);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text-primary);
   font-family: var(--font-mono);
-  box-shadow: inset 1px 1px 2px rgba(0, 0, 0, 0.1);
   transition: all 0.15s ease;
 }
 
 .hallmark-input:focus-within {
-  border-color: var(--color-accent);
+  border-color: var(--accent-primary);
   outline: none;
-  box-shadow: 0 0 0 2px var(--color-accent);
 }
 
 .hallmark-button {
-  background: var(--color-paper-2);
-  border: 2px solid var(--color-ink);
-  color: var(--color-ink);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text-primary);
   font-family: var(--font-mono);
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  box-shadow: 2px 2px 0px var(--color-ink);
   transition: all 0.1s ease;
 }
 
 .hallmark-button:hover {
-  background: var(--color-ink);
-  color: var(--color-paper);
-  transform: translate(-1px, -1px);
-  box-shadow: 3px 3px 0px var(--color-ink);
+  background: var(--border);
+  color: var(--text-primary);
 }
 
 .hallmark-button:active {
-  transform: translate(1px, 1px);
-  box-shadow: 1px 1px 0px var(--color-ink);
+  transform: translateY(1px);
 }
 
 .hallmark-button-primary {
-  background: var(--color-accent);
-  border: 2px solid var(--color-ink);
-  color: var(--color-paper);
+  background: var(--accent-primary);
+  border: none;
+  color: var(--surface);
   font-family: var(--font-mono);
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  box-shadow: 2px 2px 0px var(--color-ink);
   transition: all 0.1s ease;
 }
 
 .hallmark-button-primary:hover {
-  background: var(--color-ink);
-  color: var(--color-paper);
-  transform: translate(-1px, -1px);
-  box-shadow: 3px 3px 0px var(--color-ink);
+  background: #005A9E;
+  color: var(--surface);
 }
 
 /* Broadsheet Press Corner Crop Marks */
 .press-crop-tl {
-  border-top: 2px solid var(--color-ink);
-  border-left: 2px solid var(--color-ink);
+  border-top: 1px solid var(--border);
+  border-left: 1px solid var(--border);
 }
 .press-crop-tr {
-  border-top: 2px solid var(--color-ink);
-  border-right: 2px solid var(--color-ink);
+  border-top: 1px solid var(--border);
+  border-right: 1px solid var(--border);
 }
 .press-crop-bl {
-  border-bottom: 2px solid var(--color-ink);
-  border-left: 2px solid var(--color-ink);
+  border-bottom: 1px solid var(--border);
+  border-left: 1px solid var(--border);
 }
 .press-crop-br {
-  border-bottom: 2px solid var(--color-ink);
-  border-right: 2px solid var(--color-ink);
+  border-bottom: 1px solid var(--border);
+  border-right: 1px solid var(--border);
 }
 
 /* Removed Riso Ghost Effect */
@@ -175,24 +165,24 @@ body::after {
 }
 
 ::-webkit-scrollbar-track {
-  background: var(--color-paper-2);
-  border-left: 1px solid var(--color-hairline);
+  background: var(--surface);
+  border-left: 1px solid var(--border);
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--color-ink);
+  background: var(--border);
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--color-accent);
+  background: var(--accent-primary);
 }
 
 ::selection {
-  background: var(--color-accent);
-  color: var(--color-paper);
+  background: var(--accent-soft);
+  color: var(--text-primary);
 }
 
 :focus-visible {
-  outline: 2px solid var(--color-accent);
+  outline: 2px solid var(--accent-soft);
   outline-offset: 2px;
 }

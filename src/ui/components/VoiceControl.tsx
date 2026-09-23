@@ -13,17 +13,17 @@ export function VoiceControl() {
   const [transcript] = useState("");
 
   return (
-    <div className="p-4 border rounded-lg bg-gray-50">
+    <div className="p-4 border rounded-lg bg-[var(--surface)]">
       <div className="flex items-center gap-2 mb-2">
         <span className="text-lg">🎙️</span>
         <span className="font-semibold text-sm">Voice Commands</span>
       </div>
-      <p className="text-xs text-gray-500">
+      <p className="text-xs text-[var(--text-secondary)]">
         Voice commands require on-device speech recognition (coming soon).
         Web Speech API sends audio to cloud servers, which breaks our privacy guarantee.
       </p>
       {isListening && (
-        <p className="text-xs text-blue-600 mt-2">
+        <p className="text-xs text-[var(--accent-primary)] mt-2">
           Listening... "{transcript}"
         </p>
       )}

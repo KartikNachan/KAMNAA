@@ -117,14 +117,14 @@ export function ProviderSettings() {
   const activeProvider = Array.isArray(providers) ? providers.find((p) => p.id === active) : null;
 
   return (
-    <div className="space-y-4 font-sans text-[var(--color-ink)]">
+    <div className="space-y-4 font-sans text-[var(--text-primary)]">
       {/* Title Bar */}
-      <div className="flex items-center justify-between border-b-2 border-[var(--color-ink)] pb-2">
+      <div className="flex items-center justify-between border-b-2 border-[var(--border)] pb-2">
         <div>
-          <h2 className="text-xs font-mono-press font-bold uppercase tracking-wider text-[var(--color-ink)]">
+          <h2 className="text-xs font-mono-press font-bold uppercase tracking-wider text-[var(--text-primary)]">
             AI Providers
           </h2>
-          <p className="text-[11px] font-body-editorial text-[var(--color-ink-2)] font-medium">
+          <p className="text-[11px] font-body-editorial text-[var(--text-secondary)] font-medium">
             Configure LLM planners for browser automation.
           </p>
         </div>
@@ -138,28 +138,28 @@ export function ProviderSettings() {
       </div>
 
       {/* Active Planner Summary */}
-      <div className="hallmark-card p-3 space-y-1 bg-[var(--color-paper-2)] border-2 border-[var(--color-ink)]">
+      <div className="hallmark-card p-3 space-y-1 bg-[var(--surface)] border-2 border-[var(--border)]">
         <div className="flex items-center justify-between">
-          <span className="text-[9px] uppercase tracking-widest text-[var(--color-ink-mute)] font-mono-press font-bold">
+          <span className="text-[9px] uppercase tracking-widest text-[var(--text-secondary)] font-mono-press font-bold">
             Active Planner
           </span>
           {activeProvider && (
-            <span className="text-[10px] font-mono-press uppercase font-bold px-2 py-0.5 bg-[var(--color-accent)] text-[var(--color-paper)] border border-[var(--color-ink)]">
+            <span className="text-[10px] font-mono-press uppercase font-bold px-2 py-0.5 bg-[var(--accent-primary)] text-[var(--background)] border border-[var(--border)]">
               {activeProvider.name}
             </span>
           )}
         </div>
         {activeProvider ? (
-          <p className="text-xs font-mono-press font-semibold text-[var(--color-ink)]">
+          <p className="text-xs font-mono-press font-semibold text-[var(--text-primary)]">
             Model: {models[activeProvider.id] || activeProvider.defaultModel || activeProvider.model}
             {testResults[activeProvider.id]?.latencyMs && (
-              <span className="text-[var(--color-ink-mute)] ml-2">
+              <span className="text-[var(--text-secondary)] ml-2">
                 ({testResults[activeProvider.id].latencyMs}ms)
               </span>
             )}
           </p>
         ) : (
-          <p className="text-xs font-mono-press text-[var(--color-accent)] font-bold">
+          <p className="text-xs font-mono-press text-[var(--accent-primary)] font-bold">
             No active provider selected. Select one below.
           </p>
         )}
@@ -175,8 +175,8 @@ export function ProviderSettings() {
           return (
             <div
               key={p.id}
-              className={`hallmark-card border-2 transition-all bg-[var(--color-paper-2)] ${
-                isAct ? "border-[var(--color-accent)] shadow-md" : "border-[var(--color-ink)]"
+              className={`hallmark-card border-2 transition-all bg-[var(--surface)] ${
+                isAct ? "border-[var(--accent-primary)] shadow-md" : "border-[var(--border)]"
               }`}
             >
               {/* Card Header */}
@@ -185,14 +185,14 @@ export function ProviderSettings() {
                   <button
                     onClick={() => void handleSetActive(p.id)}
                     title={isAct ? "Active planner" : "Set as active"}
-                    className={`w-4 h-4 rounded-full border-2 border-[var(--color-ink)] transition-colors ${
-                      isAct ? "bg-[var(--color-accent)]" : "bg-[var(--color-paper)]"
+                    className={`w-4 h-4 rounded-full border-2 border-[var(--border)] transition-colors ${
+                      isAct ? "bg-[var(--accent-primary)]" : "bg-[var(--background)]"
                     }`}
                   />
-                  <span className="text-xs font-bold text-[var(--color-ink)] truncate font-mono-press">
+                  <span className="text-xs font-bold text-[var(--text-primary)] truncate font-mono-press">
                     {p.name}
                   </span>
-                  <span className="text-[10px] text-[var(--color-ink-mute)] truncate font-semibold">
+                  <span className="text-[10px] text-[var(--text-secondary)] truncate font-semibold">
                     {models[p.id] || p.defaultModel || p.model}
                   </span>
                 </div>
@@ -201,7 +201,7 @@ export function ProviderSettings() {
                   {res && (
                     <span
                       className={`text-[9px] font-mono-press font-bold uppercase px-1.5 py-0.5 ${
-                        res.ok ? "text-[var(--color-accent)]" : "text-[var(--color-accent)]"
+                        res.ok ? "text-[var(--accent-primary)]" : "text-[var(--accent-primary)]"
                       }`}
                     >
                       {res.ok ? `${res.latencyMs}ms` : "Failed"}
@@ -210,10 +210,10 @@ export function ProviderSettings() {
 
                   <button
                     onClick={() => void handleToggle(p.id, p.enabled)}
-                    className={`text-[9px] font-mono-press font-bold uppercase px-2 py-0.5 border border-[var(--color-ink)] ${
+                    className={`text-[9px] font-mono-press font-bold uppercase px-2 py-0.5 border border-[var(--border)] ${
                       p.enabled
-                        ? "bg-[var(--color-ink)] text-[var(--color-paper)]"
-                        : "bg-[var(--color-paper-3)] text-[var(--color-ink-mute)]"
+                        ? "bg-[var(--accent-primary)] text-[var(--background)]"
+                        : "bg-[var(--surface)] text-[var(--text-secondary)]"
                     }`}
                   >
                     {p.enabled ? "Enabled" : "Disabled"}
@@ -221,7 +221,7 @@ export function ProviderSettings() {
 
                   <button
                     onClick={() => setExpanded(isExp ? null : p.id)}
-                    className="text-[10px] text-[var(--color-ink)] hover:text-[var(--color-accent)] font-bold px-1"
+                    className="text-[10px] text-[var(--text-primary)] hover:text-[var(--accent-primary)] font-bold px-1"
                   >
                     {isExp ? "▲" : "▼"}
                   </button>
@@ -230,10 +230,10 @@ export function ProviderSettings() {
 
               {/* Expanded Config Form */}
               {isExp && (
-                <div className="px-3 pb-3 pt-1 border-t-2 border-[var(--color-hairline)] space-y-3 font-mono-press bg-[var(--color-paper-2)]">
+                <div className="px-3 pb-3 pt-1 border-t-2 border-[var(--border)] space-y-3 font-mono-press bg-[var(--surface)]">
                   {p.requiresApiKey && (
                     <div className="space-y-1">
-                      <label className="text-[10px] font-bold text-[var(--color-ink)] uppercase block">
+                      <label className="text-[10px] font-bold text-[var(--text-primary)] uppercase block">
                         API Key
                       </label>
                       <input
@@ -243,13 +243,13 @@ export function ProviderSettings() {
                           setKeys((prev) => ({ ...prev, [p.id]: e.target.value }))
                         }
                         placeholder={p.id === "ollama" ? "Not required" : "sk-..."}
-                        className="w-full hallmark-input px-2.5 py-1.5 text-xs text-[var(--color-ink)] font-mono-press font-semibold"
+                        className="w-full hallmark-input px-2.5 py-1.5 text-xs text-[var(--text-primary)] font-mono-press font-semibold"
                       />
                     </div>
                   )}
 
                   <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-[var(--color-ink)] uppercase block">
+                    <label className="text-[10px] font-bold text-[var(--text-primary)] uppercase block">
                       Model ID
                     </label>
                     {p.availableModels && p.availableModels.length > 0 ? (
@@ -258,7 +258,7 @@ export function ProviderSettings() {
                         onChange={(e) =>
                           setModels((prev) => ({ ...prev, [p.id]: e.target.value }))
                         }
-                        className="w-full hallmark-input px-2.5 py-1.5 text-xs text-[var(--color-ink)] font-mono-press font-semibold"
+                        className="w-full hallmark-input px-2.5 py-1.5 text-xs text-[var(--text-primary)] font-mono-press font-semibold"
                       >
                         {p.availableModels.map((m: string) => (
                           <option key={m} value={m}>
@@ -273,14 +273,14 @@ export function ProviderSettings() {
                         onChange={(e) =>
                           setModels((prev) => ({ ...prev, [p.id]: e.target.value }))
                         }
-                        className="w-full hallmark-input px-2.5 py-1.5 text-xs text-[var(--color-ink)] font-mono-press font-semibold"
+                        className="w-full hallmark-input px-2.5 py-1.5 text-xs text-[var(--text-primary)] font-mono-press font-semibold"
                       />
                     )}
                   </div>
 
                   {p.id === "ollama" && (
                     <div className="space-y-1">
-                      <label className="text-[10px] font-bold text-[var(--color-ink)] uppercase block">
+                      <label className="text-[10px] font-bold text-[var(--text-primary)] uppercase block">
                         Base URL
                       </label>
                       <input
@@ -289,7 +289,7 @@ export function ProviderSettings() {
                         onChange={(e) =>
                           setBaseUrls((prev) => ({ ...prev, [p.id]: e.target.value }))
                         }
-                        className="w-full hallmark-input px-2.5 py-1.5 text-xs text-[var(--color-ink)] font-mono-press font-semibold"
+                        className="w-full hallmark-input px-2.5 py-1.5 text-xs text-[var(--text-primary)] font-mono-press font-semibold"
                       />
                     </div>
                   )}

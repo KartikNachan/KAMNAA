@@ -111,30 +111,30 @@ export function PrivacyLedger({ pipelineResult }: { pipelineResult?: any }) {
 
   const scoreColor =
     data.privacyScore === 100
-      ? "text-green-400"
+      ? "text-[var(--success)]"
       : data.privacyScore >= 80
-        ? "text-yellow-400"
-        : "text-red-400";
+        ? "text-[var(--accent-primary)]"
+        : "text-[var(--error)]";
 
   const scoreBg =
     data.privacyScore === 100
-      ? "bg-green-900/20 border-green-800/30"
+      ? "bg-[var(--surface)] border-[var(--success)]"
       : data.privacyScore >= 80
-        ? "bg-yellow-900/20 border-yellow-800/30"
-        : "bg-red-900/20 border-red-800/30";
+        ? "bg-[var(--surface)] border-[var(--border)]"
+        : "bg-[var(--surface)] border-[var(--error)]";
 
   return (
     <div className="space-y-3">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <h3 className="text-sm font-semibold text-gray-300">🔒 Privacy Ledger</h3>
+        <h3 className="text-sm font-semibold text-[var(--text-secondary)]">🔒 Privacy Ledger</h3>
         <div className="flex items-center gap-1.5">
           <span
             className={`w-2 h-2 rounded-full ${
-              data.tripwireActive ? "bg-green-400 animate-pulse" : "bg-gray-600"
+              data.tripwireActive ? "bg-[var(--success)] animate-pulse" : "bg-[var(--surface)]"
             }`}
           />
-          <span className="text-[10px] text-gray-500">
+          <span className="text-[10px] text-[var(--text-secondary)]">
             {data.tripwireActive ? "Live" : "Inactive"}
           </span>
         </div>
@@ -159,7 +159,7 @@ export function PrivacyLedger({ pipelineResult }: { pipelineResult?: any }) {
                   ? "Good Privacy"
                   : "Privacy Risk"}
             </div>
-            <div className="text-[10px] text-gray-500">
+            <div className="text-[10px] text-[var(--text-secondary)]">
               {data.piiDetected} PII detected → {data.piiRedacted} redacted
             </div>
           </div>
@@ -202,10 +202,10 @@ export function PrivacyLedger({ pipelineResult }: { pipelineResult?: any }) {
 
       {/* Tripwire Events */}
       {data.events.length > 0 && (
-        <div className="bg-gray-900 rounded-lg border border-gray-800">
+        <div className="bg-[var(--surface)] rounded-lg border border-[var(--border)]">
           <button
             onClick={() => setExpanded(!expanded)}
-            className="w-full flex items-center justify-between p-2 text-[11px] text-gray-400 hover:text-gray-300"
+            className="w-full flex items-center justify-between p-2 text-[11px] text-[var(--text-secondary)] hover:text-[var(--text-secondary)]"
           >
             <span>🚨 Blocked Requests ({data.events.length})</span>
             <span>{expanded ? "▲" : "▼"}</span>
@@ -215,14 +215,14 @@ export function PrivacyLedger({ pipelineResult }: { pipelineResult?: any }) {
               {data.events.slice(-10).reverse().map((event) => (
                 <div
                   key={event.id}
-                  className="bg-red-900/20 rounded p-1.5 text-[10px]"
+                  className="bg-[var(--surface)] rounded p-1.5 text-[10px]"
                 >
                   <div className="flex items-center gap-2">
-                    <span className="text-red-400">BLOCKED</span>
-                    <span className="text-gray-500">{event.method}</span>
-                    <span className="text-gray-400 truncate">{event.url}</span>
+                    <span className="text-[var(--error)]">BLOCKED</span>
+                    <span className="text-[var(--text-secondary)]">{event.method}</span>
+                    <span className="text-[var(--text-secondary)] truncate">{event.url}</span>
                   </div>
-                  <div className="text-gray-600 mt-0.5">
+                  <div className="text-[var(--text-secondary)] mt-0.5">
                     PII:{" "}
                     {event.detectedPatterns.map((p) => p.category).join(", ")}
                   </div>
@@ -234,8 +234,8 @@ export function PrivacyLedger({ pipelineResult }: { pipelineResult?: any }) {
       )}
 
       {/* Proof Statement */}
-      <div className="bg-gray-900 rounded-lg p-3 border border-gray-800">
-        <h4 className="text-[10px] text-gray-500 uppercase tracking-wider mb-2">
+      <div className="bg-[var(--surface)] rounded-lg p-3 border border-[var(--border)]">
+        <h4 className="text-[10px] text-[var(--text-secondary)] uppercase tracking-wider mb-2">
           Privacy Proof
         </h4>
         <div className="space-y-1 text-[11px]">
@@ -269,7 +269,7 @@ export function PrivacyLedger({ pipelineResult }: { pipelineResult?: any }) {
             }
           />
         </div>
-        <p className="text-[9px] text-gray-600 mt-2">
+        <p className="text-[9px] text-[var(--text-secondary)] mt-2">
           Verify: Open DevTools → Network tab → Run agent → Zero PII in requests
         </p>
       </div>
@@ -296,16 +296,16 @@ function StatCard({
     <div
       className={`rounded-lg p-2 border ${
         highlight
-          ? "bg-blue-900/20 border-blue-800/30"
-          : "bg-gray-900 border-gray-800"
+          ? "bg-[var(--surface)] border-[var(--accent-primary)]"
+          : "bg-[var(--surface)] border-[var(--border)]"
       }`}
     >
       <div className="flex items-center gap-1.5 mb-1">
         <span className="text-sm">{icon}</span>
-        <span className="text-[10px] text-gray-500">{label}</span>
+        <span className="text-[10px] text-[var(--text-secondary)]">{label}</span>
       </div>
-      <div className="text-sm font-semibold text-gray-300">{value}</div>
-      <div className="text-[9px] text-gray-600">{detail}</div>
+      <div className="text-sm font-semibold text-[var(--text-secondary)]">{value}</div>
+      <div className="text-[9px] text-[var(--text-secondary)]">{detail}</div>
     </div>
   );
 }
@@ -314,7 +314,7 @@ function ProofLine({ passed, text }: { passed: boolean; text: string }) {
   return (
     <div className="flex items-center gap-2">
       <span>{passed ? "✅" : "⏳"}</span>
-      <span className={passed ? "text-gray-400" : "text-gray-600"}>{text}</span>
+      <span className={passed ? "text-[var(--text-secondary)]" : "text-[var(--text-secondary)]"}>{text}</span>
     </div>
   );
 }

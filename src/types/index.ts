@@ -92,6 +92,7 @@ export interface AgentAction {
   id: string;
   type: ActionType;
   target?: string; // element selector or ID
+  targetDescription?: string;
   value?: string;
   coordinates?: { x: number; y: number };
   key?: string;

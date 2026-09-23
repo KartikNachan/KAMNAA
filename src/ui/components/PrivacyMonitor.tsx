@@ -25,16 +25,16 @@ export function PrivacyMonitor() {
   }, []);
 
   return (
-    <div className="p-4 space-y-4 font-sans text-[var(--color-ink)]">
+    <div className="p-4 space-y-4 font-sans text-[var(--text-primary)]">
       {/* Title Bar */}
-      <div className="flex items-center justify-between border-b-2 border-[var(--color-ink)] pb-2">
+      <div className="flex items-center justify-between border-b-2 border-[var(--border)] pb-2">
         <div className="flex items-center gap-2">
-          <svg className="w-4 h-4 text-[var(--color-teal)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="w-4 h-4 text-[var(--success)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
           </svg>
-          <h2 className="text-sm font-display-poster uppercase tracking-wider text-[var(--color-ink)]">Privacy Monitor</h2>
+          <h2 className="text-sm font-display-poster uppercase tracking-wider text-[var(--text-primary)]">Privacy Monitor</h2>
         </div>
-        <span className="text-[10px] font-mono-press px-2 py-0.5 uppercase font-bold bg-[var(--color-teal)] text-[var(--color-paper)] border border-[var(--color-ink)]">
+        <span className="text-[10px] font-mono-press px-2 py-0.5 uppercase font-bold bg-[var(--success)] text-[var(--background)] border border-[var(--border)]">
           {privacyScore.label}
         </span>
       </div>
@@ -43,10 +43,10 @@ export function PrivacyMonitor() {
       <div className="flex justify-center py-2">
         <div className="relative w-28 h-28">
           <svg className="w-28 h-28 -rotate-90" viewBox="0 0 120 120">
-            <circle cx="60" cy="60" r="52" fill="none" stroke="var(--color-paper-3)" strokeWidth="8" />
+            <circle cx="60" cy="60" r="52" fill="none" stroke="var(--surface)" strokeWidth="8" />
             <circle
               cx="60" cy="60" r="52" fill="none"
-              stroke="var(--color-teal)"
+              stroke="var(--success)"
               strokeWidth="8"
               strokeDasharray={`${(privacyScore.score / 100) * 327} 327`}
               strokeLinecap="butt"
@@ -54,10 +54,10 @@ export function PrivacyMonitor() {
             />
           </svg>
           <div className="absolute inset-0 flex flex-col items-center justify-center font-mono-press">
-            <span className="text-3xl font-bold tracking-tight text-[var(--color-ink)]">
+            <span className="text-3xl font-bold tracking-tight text-[var(--text-primary)]">
               {privacyScore.score}
             </span>
-            <span className="text-[9px] uppercase tracking-widest text-[var(--color-ink-mute)] font-semibold">Score</span>
+            <span className="text-[9px] uppercase tracking-widest text-[var(--text-secondary)] font-semibold">Score</span>
           </div>
         </div>
       </div>
@@ -76,12 +76,12 @@ export function PrivacyMonitor() {
 
       {/* Zero Egress Proof Banner */}
       {stats.isMonitoring && stats.outboundRequests === 0 && (
-        <div className="hallmark-card p-3 border-2 border-[var(--color-teal)] bg-[var(--color-paper-2)] text-center space-y-1">
-          <div className="inline-flex items-center gap-1.5 text-xs font-mono-press font-bold text-[var(--color-teal)] uppercase">
-            <span className="w-2 h-2 rounded-full bg-[var(--color-teal)] animate-pulse-dot" />
+        <div className="hallmark-card p-3 border-2 border-[var(--success)] bg-[var(--surface)] text-center space-y-1">
+          <div className="inline-flex items-center gap-1.5 text-xs font-mono-press font-bold text-[var(--success)] uppercase">
+            <span className="w-2 h-2 rounded-full bg-[var(--success)] animate-pulse-dot" />
             Verified Zero Outbound Egress
           </div>
-          <p className="text-[10px] font-body-editorial text-[var(--color-ink)] leading-relaxed">
+          <p className="text-[10px] font-body-editorial text-[var(--text-primary)] leading-relaxed">
             All vision processing, OCR, and PII detection ran locally inside browser WASM.
           </p>
         </div>
@@ -89,16 +89,16 @@ export function PrivacyMonitor() {
 
       {/* Outbound Warning */}
       {stats.outboundRequests > 0 && (
-        <div className="hallmark-card p-3 border-2 border-[var(--color-accent)] bg-[var(--color-paper-2)] space-y-2">
-          <p className="text-xs font-mono-press font-bold text-[var(--color-accent)] uppercase flex items-center gap-1.5">
-            <span className="w-2 h-2 rounded-full bg-[var(--color-accent)] animate-ping" />
+        <div className="hallmark-card p-3 border-2 border-[var(--accent-primary)] bg-[var(--surface)] space-y-2">
+          <p className="text-xs font-mono-press font-bold text-[var(--accent-primary)] uppercase flex items-center gap-1.5">
+            <span className="w-2 h-2 rounded-full bg-[var(--accent-primary)] animate-ping" />
             {stats.outboundRequests} Outbound Request(s) Detected
           </p>
           <div className="space-y-1">
             {Array.from(stats.requestsByDomain.entries())
               .filter(([d]) => d !== "localhost" && !d.includes("chrome-extension"))
               .map(([domain, count]) => (
-                <div key={domain} className="flex justify-between text-[10px] font-mono-press text-[var(--color-ink)]">
+                <div key={domain} className="flex justify-between text-[10px] font-mono-press text-[var(--text-primary)]">
                   <span>{domain}</span>
                   <span>{count}</span>
                 </div>
@@ -123,9 +123,9 @@ export function PrivacyMonitor() {
 
 function StatCard({ label, value, alert }: { label: string; value: string; alert?: boolean }) {
   return (
-    <div className={`hallmark-card p-2.5 border-2 ${alert ? "border-[var(--color-accent)] bg-[var(--color-paper-2)]" : "border-[var(--color-ink)]"}`}>
-      <span className="text-[9px] uppercase tracking-wider text-[var(--color-ink-mute)] font-semibold block mb-0.5">{label}</span>
-      <span className={`text-base font-bold font-mono-press ${alert ? "text-[var(--color-accent)]" : "text-[var(--color-ink)]"}`}>
+    <div className={`hallmark-card p-2.5 border-2 ${alert ? "border-[var(--accent-primary)] bg-[var(--surface)]" : "border-[var(--border)]"}`}>
+      <span className="text-[9px] uppercase tracking-wider text-[var(--text-secondary)] font-semibold block mb-0.5">{label}</span>
+      <span className={`text-base font-bold font-mono-press ${alert ? "text-[var(--accent-primary)]" : "text-[var(--text-primary)]"}`}>
         {value}
       </span>
     </div>

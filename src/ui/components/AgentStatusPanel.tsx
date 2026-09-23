@@ -8,17 +8,17 @@ const STATUS_CONFIG: Record<
   AgentStatus,
   { icon: string; color: string; bgColor: string; label: string }
 > = {
-  idle: { icon: "💤", color: "text-gray-400", bgColor: "bg-gray-800", label: "Idle" },
-  analyzing: { icon: "👁️", color: "text-blue-400", bgColor: "bg-blue-900/20", label: "Analyzing Page" },
-  planning: { icon: "🧠", color: "text-purple-400", bgColor: "bg-purple-900/20", label: "Planning Actions" },
-  executing: { icon: "⚡", color: "text-yellow-400", bgColor: "bg-yellow-900/20", label: "Executing" },
-  verifying: { icon: "✅", color: "text-green-400", bgColor: "bg-green-900/20", label: "Verifying" },
-  recovering: { icon: "🔄", color: "text-orange-400", bgColor: "bg-orange-900/20", label: "Recovering" },
-  completed: { icon: "🎉", color: "text-green-400", bgColor: "bg-green-900/20", label: "Completed" },
-  partial: { icon: "⚠️", color: "text-yellow-400", bgColor: "bg-yellow-900/20", label: "Partially Completed" },
-  failed: { icon: "❌", color: "text-red-400", bgColor: "bg-red-900/20", label: "Failed" },
-  paused: { icon: "⏸️", color: "text-yellow-400", bgColor: "bg-yellow-900/20", label: "Paused" },
-  waiting_for_user: { icon: "🙋", color: "text-cyan-400", bgColor: "bg-cyan-900/20", label: "Waiting for Input" },
+  idle: { icon: "💤", color: "text-[var(--text-secondary)]", bgColor: "bg-[var(--surface)]", label: "Idle" },
+  analyzing: { icon: "👁️", color: "text-[var(--accent-primary)]", bgColor: "bg-[var(--surface)]", label: "Analyzing Page" },
+  planning: { icon: "🧠", color: "text-purple-400", bgColor: "bg-[var(--surface)]", label: "Planning Actions" },
+  executing: { icon: "⚡", color: "text-[var(--accent-primary)]", bgColor: "bg-[var(--surface)]", label: "Executing" },
+  verifying: { icon: "✅", color: "text-[var(--success)]", bgColor: "bg-[var(--surface)]", label: "Verifying" },
+  recovering: { icon: "🔄", color: "text-[var(--accent-primary)]", bgColor: "bg-[var(--surface)]", label: "Recovering" },
+  completed: { icon: "🎉", color: "text-[var(--success)]", bgColor: "bg-[var(--surface)]", label: "Completed" },
+  partial: { icon: "⚠️", color: "text-[var(--accent-primary)]", bgColor: "bg-[var(--surface)]", label: "Partially Completed" },
+  failed: { icon: "❌", color: "text-[var(--error)]", bgColor: "bg-[var(--surface)]", label: "Failed" },
+  paused: { icon: "⏸️", color: "text-[var(--accent-primary)]", bgColor: "bg-[var(--surface)]", label: "Paused" },
+  waiting_for_user: { icon: "🙋", color: "text-[var(--accent-soft)]", bgColor: "bg-[var(--surface)]", label: "Waiting for Input" },
 };
 
 export function AgentStatusPanel({ task }: AgentStatusPanelProps) {
@@ -26,7 +26,7 @@ export function AgentStatusPanel({ task }: AgentStatusPanelProps) {
     return (
       <div className="flex flex-col items-center justify-center p-8 text-center">
         <div className="text-4xl mb-3">🐾</div>
-        <p className="text-xs text-gray-500">
+        <p className="text-xs text-[var(--text-secondary)]">
           No active task. Start one from the Task tab.
         </p>
       </div>
@@ -41,27 +41,27 @@ export function AgentStatusPanel({ task }: AgentStatusPanelProps) {
   return (
     <div className="p-4 space-y-4">
       {/* Status Header */}
-      <div className={`${config.bgColor} rounded-lg p-4 border border-gray-800`}>
+      <div className={`${config.bgColor} rounded-lg p-4 border border-[var(--border)]`}>
         <div className="flex items-center gap-3 mb-3">
           <span className="text-2xl">{config.icon}</span>
           <div>
             <h3 className={`text-sm font-semibold ${config.color}`}>
               {config.label}
             </h3>
-            <p className="text-[11px] text-gray-500">
+            <p className="text-[11px] text-[var(--text-secondary)]">
               {task.description}
             </p>
           </div>
         </div>
 
         {/* Progress Bar */}
-        <div className="w-full bg-gray-800 rounded-full h-2 mb-2">
+        <div className="w-full bg-[var(--surface)] rounded-full h-2 mb-2">
           <div
-            className="bg-blue-500 h-2 rounded-full transition-all duration-500"
+            className="bg-[var(--accent-primary)] h-2 rounded-full transition-all duration-500"
             style={{ width: `${progress}%` }}
           />
         </div>
-        <div className="flex justify-between text-[10px] text-gray-500">
+        <div className="flex justify-between text-[10px] text-[var(--text-secondary)]">
           <span>Step {task.currentStep} / {task.totalSteps}</span>
           <span>{progress}%</span>
         </div>
@@ -69,16 +69,16 @@ export function AgentStatusPanel({ task }: AgentStatusPanelProps) {
 
       {/* Step Details */}
       {task.status === "executing" && task.plan.steps.length > 0 && (
-        <div className="bg-gray-900 rounded-lg p-3 border border-gray-800">
-          <h4 className="text-[10px] text-gray-500 uppercase tracking-wider mb-2">
+        <div className="bg-[var(--surface)] rounded-lg p-3 border border-[var(--border)]">
+          <h4 className="text-[10px] text-[var(--text-secondary)] uppercase tracking-wider mb-2">
             Current Step
           </h4>
           {task.plan.steps[task.currentStep] && (
             <div className="space-y-1">
-              <p className="text-[11px] text-gray-300">
+              <p className="text-[11px] text-[var(--text-secondary)]">
                 {task.plan.steps[task.currentStep].reasoning}
               </p>
-              <div className="flex items-center gap-3 text-[10px] text-gray-500">
+              <div className="flex items-center gap-3 text-[10px] text-[var(--text-secondary)]">
                 <span>
                   Action: {task.plan.steps[task.currentStep].action.type}
                 </span>
@@ -93,26 +93,26 @@ export function AgentStatusPanel({ task }: AgentStatusPanelProps) {
 
       {/* Error Details */}
       {task.status === "failed" && task.error && (
-        <div className="bg-red-900/20 rounded-lg p-3 border border-red-800/30">
-          <h4 className="text-[10px] text-red-400 uppercase tracking-wider mb-1">
+        <div className="bg-[var(--surface)] rounded-lg p-3 border border-[var(--error)]">
+          <h4 className="text-[10px] text-[var(--error)] uppercase tracking-wider mb-1">
             Error
           </h4>
-          <p className="text-[11px] text-gray-400 font-mono">{task.error}</p>
+          <p className="text-[11px] text-[var(--text-secondary)] font-mono">{task.error}</p>
         </div>
       )}
 
       {/* Result */}
       {task.status === "completed" && task.result && (
-        <div className="bg-green-900/20 rounded-lg p-3 border border-green-800/30">
-          <h4 className="text-[10px] text-green-400 uppercase tracking-wider mb-1">
+        <div className="bg-[var(--surface)] rounded-lg p-3 border border-[var(--success)]">
+          <h4 className="text-[10px] text-[var(--success)] uppercase tracking-wider mb-1">
             Result
           </h4>
-          <p className="text-[11px] text-gray-400">{task.result}</p>
+          <p className="text-[11px] text-[var(--text-secondary)]">{task.result}</p>
         </div>
       )}
 
       {/* Timing */}
-      <div className="text-center text-[10px] text-gray-600">
+      <div className="text-center text-[10px] text-[var(--text-secondary)]">
         {task.startTime && (
           <span>
             Started {new Date(task.startTime).toLocaleTimeString()}

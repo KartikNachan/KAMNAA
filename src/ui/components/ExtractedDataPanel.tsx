@@ -24,24 +24,24 @@ export function ExtractedDataPanel({ data }: Props) {
   const { summary } = data;
 
   return (
-    <div className="space-y-3 font-sans text-[var(--color-ink)]">
+    <div className="space-y-3 font-sans text-[var(--text-primary)]">
       {/* Header */}
-      <div className="hallmark-card p-3.5 space-y-1 bg-[var(--color-paper-2)] border-2 border-[var(--color-ink)]">
+      <div className="hallmark-card p-3.5 space-y-1 bg-[var(--surface)] border-2 border-[var(--border)]">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <svg className="w-4 h-4 text-[var(--color-accent)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-4 h-4 text-[var(--accent-primary)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
             </svg>
-            <span className="text-xs font-bold text-[var(--color-ink)] font-mono-press uppercase tracking-wider">Extracted Data</span>
+            <span className="text-xs font-bold text-[var(--text-primary)] font-mono-press uppercase tracking-wider">Extracted Data</span>
           </div>
-          <span className="text-[9px] font-mono-press uppercase px-2 py-0.5 bg-[var(--color-accent)] text-[var(--color-paper)] font-bold border border-[var(--color-ink)]">
+          <span className="text-[9px] font-mono-press uppercase px-2 py-0.5 bg-[var(--accent-primary)] text-[var(--background)] font-bold border border-[var(--border)]">
             On-Device Read
           </span>
         </div>
-        <p className="text-[11px] text-[var(--color-ink-2)] truncate font-mono-press font-semibold" title={data.title}>
+        <p className="text-[11px] text-[var(--text-secondary)] truncate font-mono-press font-semibold" title={data.title}>
           {data.title || data.url}
         </p>
-        <div className="flex items-center gap-3 text-[10px] text-[var(--color-ink-mute)] font-mono-press font-bold pt-1">
+        <div className="flex items-center gap-3 text-[10px] text-[var(--text-secondary)] font-mono-press font-bold pt-1">
           <span>{summary.fieldCount} fields</span>
           <span>•</span>
           <span>{summary.filledFieldCount} filled</span>
@@ -64,7 +64,7 @@ export function ExtractedDataPanel({ data }: Props) {
           onClick={() => copyJSON(revealed)}
           className="hallmark-button text-[10px] px-2.5 py-1 font-mono-press uppercase flex items-center gap-1.5"
         >
-          <svg className="w-3 h-3 text-[var(--color-ink)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="w-3 h-3 text-[var(--text-primary)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
           </svg>
           {copied ? "Copied to Clipboard" : revealed ? "Copy JSON" : "Copy JSON (Masked)"}
@@ -73,20 +73,20 @@ export function ExtractedDataPanel({ data }: Props) {
 
       {/* Structured Sections Table */}
       {data.sections.map((section, si) => (
-        <div key={`${section.title}-${si}`} className="hallmark-card border-2 border-[var(--color-ink)] bg-[var(--color-paper-2)] overflow-hidden">
-          <div className="px-3 py-2 bg-[var(--color-paper-3)] border-b-2 border-[var(--color-ink)] flex items-center justify-between font-mono-press">
-            <span className="text-[11px] font-bold text-[var(--color-ink)] uppercase tracking-wider">{section.title}</span>
-            <span className="text-[9px] text-[var(--color-ink-mute)] font-bold">{section.fields.length} FIELDS</span>
+        <div key={`${section.title}-${si}`} className="hallmark-card border-2 border-[var(--border)] bg-[var(--surface)] overflow-hidden">
+          <div className="px-3 py-2 bg-[var(--surface)] border-b-2 border-[var(--border)] flex items-center justify-between font-mono-press">
+            <span className="text-[11px] font-bold text-[var(--text-primary)] uppercase tracking-wider">{section.title}</span>
+            <span className="text-[9px] text-[var(--text-secondary)] font-bold">{section.fields.length} FIELDS</span>
           </div>
-          <div className="divide-y-2 divide-[var(--color-hairline)] font-mono-press">
+          <div className="divide-y-2 divide-[var(--border)] font-mono-press">
             {section.fields.map((field, fi) => (
               <div key={`${field.label}-${fi}`} className="px-3 py-2 flex items-start justify-between gap-3 text-xs">
-                <span className="text-[11px] text-[var(--color-ink-2)] w-1/3 shrink-0 font-medium truncate">
+                <span className="text-[11px] text-[var(--text-secondary)] w-1/3 shrink-0 font-medium truncate">
                   {field.label}
                 </span>
-                <span className="text-[11px] text-[var(--color-ink)] flex-1 font-bold break-all text-right font-mono-press">
+                <span className="text-[11px] text-[var(--text-primary)] flex-1 font-bold break-all text-right font-mono-press">
                   {field.value === "" ? (
-                    <span className="text-[var(--color-ink-mute)] italic font-normal">empty</span>
+                    <span className="text-[var(--text-secondary)] italic font-normal">empty</span>
                   ) : revealed && field.rawValue !== undefined ? (
                     field.rawValue
                   ) : (
@@ -94,7 +94,7 @@ export function ExtractedDataPanel({ data }: Props) {
                   )}
                 </span>
                 {field.piiCategory && (
-                  <span className="text-[9px] font-mono-press font-bold px-1.5 py-0.5 bg-[var(--color-accent)] text-[var(--color-paper)] uppercase shrink-0 border border-[var(--color-ink)]">
+                  <span className="text-[9px] font-mono-press font-bold px-1.5 py-0.5 bg-[var(--accent-primary)] text-[var(--background)] uppercase shrink-0 border border-[var(--border)]">
                     {field.piiCategory}
                   </span>
                 )}

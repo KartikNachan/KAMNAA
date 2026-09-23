@@ -48,22 +48,22 @@ export function PIIReviewPanel({ fields }: Props) {
   const empty = fields.filter((f) => !f.value && f.required);
 
   return (
-    <div className="space-y-2.5 font-sans text-[var(--color-ink)]">
+    <div className="space-y-2.5 font-sans text-[var(--text-primary)]">
       {/* Header Banner */}
-      <div className="hallmark-card p-3 border-2 border-[var(--color-ink)] bg-[var(--color-paper-2)]">
+      <div className="hallmark-card p-3 border-2 border-[var(--border)] bg-[var(--surface)]">
         <div className="flex items-center gap-2">
-          <svg className="w-4 h-4 text-[var(--color-accent)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="w-4 h-4 text-[var(--accent-primary)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
           </svg>
-          <span className="text-xs font-bold text-[var(--color-ink)] font-mono-press uppercase tracking-wider">
+          <span className="text-xs font-bold text-[var(--text-primary)] font-mono-press uppercase tracking-wider">
             Review Form Filled Fields
           </span>
         </div>
-        <p className="text-[11px] text-[var(--color-ink-2)] mt-1 font-body-editorial font-medium leading-relaxed">
+        <p className="text-[11px] text-[var(--text-secondary)] mt-1 font-body-editorial font-medium leading-relaxed">
           Post-execution verification read directly from the page DOM. Edits apply immediately.
         </p>
         {empty.length > 0 && (
-          <p className="text-[10px] text-[var(--color-accent)] font-mono-press font-bold mt-1 uppercase">
+          <p className="text-[10px] text-[var(--accent-primary)] font-mono-press font-bold mt-1 uppercase">
             {empty.length} required field{empty.length === 1 ? "" : "s"} empty
           </p>
         )}
@@ -84,13 +84,13 @@ export function PIIReviewPanel({ fields }: Props) {
           const st = state[f.selector] ?? "idle";
           const dirty = isDirty(f);
           return (
-            <div key={f.selector} className="hallmark-card p-2.5 space-y-1.5 border-2 border-[var(--color-ink)] bg-[var(--color-paper-2)]">
+            <div key={f.selector} className="hallmark-card p-2.5 space-y-1.5 border-2 border-[var(--border)] bg-[var(--surface)]">
               <div className="flex items-center justify-between">
-                <span className="text-[10px] text-[var(--color-ink)] font-bold truncate max-w-[160px]" title={f.label}>
-                  {f.label} {f.required && <span className="text-[var(--color-accent)]">*</span>}
+                <span className="text-[10px] text-[var(--text-primary)] font-bold truncate max-w-[160px]" title={f.label}>
+                  {f.label} {f.required && <span className="text-[var(--accent-primary)]">*</span>}
                 </span>
                 {f.category && (
-                  <span className="text-[9px] font-mono-press font-bold px-1.5 py-0.5 bg-[var(--color-accent)] text-[var(--color-paper)] uppercase shrink-0 border border-[var(--color-ink)]">
+                  <span className="text-[9px] font-mono-press font-bold px-1.5 py-0.5 bg-[var(--accent-primary)] text-[var(--background)] uppercase shrink-0 border border-[var(--border)]">
                     {f.category}
                   </span>
                 )}
@@ -104,7 +104,7 @@ export function PIIReviewPanel({ fields }: Props) {
                   onChange={(e) =>
                     setEdits((prev) => ({ ...prev, [f.selector]: e.target.value }))
                   }
-                  className="flex-1 min-w-0 text-xs font-mono-press font-semibold hallmark-input px-2 py-1 text-[var(--color-ink)] placeholder:text-[var(--color-ink-mute)] focus:outline-none"
+                  className="flex-1 min-w-0 text-xs font-mono-press font-semibold hallmark-input px-2 py-1 text-[var(--text-primary)] placeholder:text-[var(--text-secondary)] focus:outline-none"
                 />
                 <button
                   onClick={() => void apply(f)}

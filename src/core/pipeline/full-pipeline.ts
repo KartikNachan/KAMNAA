@@ -25,6 +25,8 @@ import {
 import { generatePlanWithBestProvider, getBestAvailableProvider } from "../agent/llm-providers";
 import { saveSessionRecord } from "../privacy/session-history";
 import type { PlannedAction, PageState, Message } from "../../types";
+import { loadProfile } from "../profile/local-profile";
+import { matchProfileToForm } from "../profile/profile-matcher";
 
 // ── Pipeline Types ───────────────────────────────────────────
 
@@ -34,9 +36,10 @@ export interface PipelineInput {
   tabId?: number;
   /** Called after every step transition so callers can stream progress. */
   onProgress?: (update: PipelineProgress) => void;
-  /** Recent task descriptions, so a follow-up like "submit form" has context. */
   recentTasks?: string[];
 }
+
+
 
 export interface PIIReviewField {
   /** Human label as it appears on the form. */
@@ -78,6 +81,8 @@ export interface PipelineResult {
   piiReview?: PIIReviewField[];
   /** What the agent still needs FROM THE USER to finish. */
   needs?: RequiredInput[];
+  /** Ambiguous profile matches that require user clarification. */
+  ambiguousFields?: Array<{ fieldLabel: string; selector: string; type: string; candidates: string[] }>;
   /** One line covering both what was done and what is outstanding. */
   outcome?: string;
   error?: string;
@@ -221,7 +226,7 @@ export async function executeFullPipeline(
     overlayShown: false,
   };
 
-  let planResult: PlanResult = {
+  let planResult: PlanResult & { ambiguousFields?: Array<{ fieldLabel: string, selector: string, type: string, candidates: string[] }> } = {
     success: false,
     steps: [],
     reasoning: "",
@@ -520,8 +525,8 @@ export async function executeFullPipeline(
           verifyStep.details = `⚠️ Not verified — OCR unavailable (${verifyResult.unavailableReason ?? "unknown"})`;
         } else {
           verifyStep.details = verifyResult.passed
-            ? `✅ Verified: 0 PII in pixels (${verifyResult.timings.ocr.toFixed(0)}ms)`
-            : `❌ ${verifyResult.piiTextFound} PII regions residual`;
+            ? `Verified: 0 PII in pixels (${verifyResult.timings.ocr.toFixed(0)}ms)`
+            : `${verifyResult.piiTextFound} PII regions residual`;
         }
         // Trace: redaction verification
         traceRedactionVerification(verifyResult.passed, verifyResult.piiTextFound, verifyResult.timings.ocr);
@@ -701,6 +706,39 @@ export async function executeFullPipeline(
         }
       }
 
+      // Check for Local Profile intent
+      const taskLower = planningTask.toLowerCase();
+      if (
+        taskLower.includes("profile") || 
+        taskLower.includes("saved information") ||
+        taskLower.includes("saved data") ||
+        taskLower.includes("my info")
+      ) {
+        console.log("[KAMNAA] Local Profile Matcher intercepted planning.");
+        const profile = await loadProfile();
+        const matchResult = matchProfileToForm(domData.elements, profile);
+        
+        if (matchResult.success) {
+          return {
+            success: true,
+            steps: matchResult.steps,
+            reasoning: matchResult.reasoning,
+            provider: "local-profile",
+            latencyMs: performance.now() - startTime,
+            ambiguousFields: matchResult.ambiguousFields
+          };
+        } else if (matchResult.ambiguousFields.length > 0) {
+           return {
+            success: false,
+            steps: [],
+            reasoning: "Ambiguous profile matches found.",
+            provider: "local-profile",
+            latencyMs: performance.now() - startTime,
+            ambiguousFields: matchResult.ambiguousFields
+          };
+        }
+      }
+
       // Anything the local planner cannot handle goes to an LLM.
       
       const elements = sanitizedContext.pageStructure.elements;
@@ -805,6 +843,7 @@ export async function executeFullPipeline(
           totalLatencyMs: totalPipelineLatency,
           extractedData: undefined,
           subTasks,
+          ambiguousFields: planResult.ambiguousFields,
           error: `PLAN_SCOPE_VIOLATION: Plan length (${planResult.steps.length}) exceeds safe boundaries.`,
         };
       }
@@ -1016,7 +1055,9 @@ export async function executeFullPipeline(
         stepIndex: i + 1,
         action: `${st.action?.type || "action"} ${st.action?.target || ""}`.trim(),
         targetId: st.action?.target,
-        sanitizedValue: st.action?.value ? maskPIIInText(st.action.value) : undefined,
+        sanitizedValue: planResult.provider === "local-profile" && st.action?.value 
+          ? "[LOCAL_PROFILE_FIELD]" 
+          : (st.action?.value ? maskPIIInText(st.action.value) : undefined),
         timestamp: Date.now(),
       })),
     }).catch(() => {});
@@ -1155,6 +1196,8 @@ export async function executePlanSteps(
         console.warn(`[KAMNAA] Grounding skipped: Could not perceive fresh page state.`);
       }
     }
+
+
 
     // Multi-strategy execution with fallbacks
     let result: any = null;

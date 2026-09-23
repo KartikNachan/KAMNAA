@@ -18,9 +18,10 @@ import { PrivacyMonitor } from "./PrivacyMonitor";
 import { RuntimePanel } from "./RuntimePanel";
 import { ProviderSettings } from "./ProviderSettings";
 import { SessionHistoryPanel } from "./SessionHistoryPanel";
+import { LocalProfilePanel } from "./LocalProfilePanel";
 import { Onboarding } from "./Onboarding";
 import { DrawerErrorBoundary } from "./DrawerErrorBoundary";
-import { useKeyboardShortcuts, SHORTCUTS } from "../hooks/useKeyboardShortcuts";
+import { useKeyboardShortcuts } from "../hooks/useKeyboardShortcuts";
 import type {
   AgentTask,
   ReasoningStep,
@@ -28,7 +29,7 @@ import type {
   MessageType,
 } from "../../types";
 
-type DrawerType = "none" | "ai" | "models" | "learn" | "privacy" | "voice" | "debug" | "history";
+type DrawerType = "none" | "ai" | "models" | "learn" | "privacy" | "voice" | "debug" | "history" | "profile";
 
 export function App() {
   const [activeDrawer, setActiveDrawer] = useState<DrawerType>("none");
@@ -45,13 +46,13 @@ export function App() {
   const [, _setPageState] = useState<PageState | null>(null);
   const [overlayActive, setOverlayActive] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
-  const [showShortcuts, setShowShortcuts] = useState(false);
+
   const [llmStatus, setLlmStatus] = useState<{ available: boolean; provider?: string; model?: string }>({ available: false });
 
   // ── Check First Visit & LLM Status ───────────────────────
 
   useEffect(() => {
-    chrome.storage.local.get("onboardingComplete", (result) => {
+    chrome.storage.local.get(["onboardingComplete"], (result) => {
       if (!result.onboardingComplete) {
         setShowOnboarding(true);
       }
@@ -276,16 +277,16 @@ export function App() {
   }
 
   return (
-    <div className="flex flex-col h-screen bg-[var(--color-paper)] text-[var(--color-ink)] font-sans relative overflow-hidden select-none">
+    <div className="flex flex-col h-screen bg-[var(--background)] text-[var(--text-primary)] font-sans relative overflow-hidden select-none">
       {/* ── Top Masthead Header ──────────────────────────────────── */}
-      <header className="relative z-20 flex items-center justify-between px-4 py-2 bg-[var(--color-paper)] border-b-2 border-[var(--color-ink)]">
+      <header className="relative z-20 flex items-center justify-between px-4 py-2 bg-[var(--background)] border-b-2 border-[var(--border)]">
         {/* Brand mark */}
         <div className="flex items-center gap-2">
-          <div className="w-5 h-5 bg-[var(--color-ink)] text-[var(--color-paper)] flex items-center justify-center font-display-poster text-xs font-bold">
+          <div className="w-5 h-5 bg-[var(--accent-primary)] text-[var(--background)] flex items-center justify-center font-display-poster text-xs font-bold">
             K
           </div>
-          <span className="font-display-poster text-base tracking-wide text-[var(--color-ink)] uppercase">KAMNAA</span>
-          <span className="text-[9px] font-mono-press uppercase px-1.5 py-0.5 bg-[var(--color-accent)] text-[var(--color-paper)] font-bold">
+          <span className="font-display-poster text-base tracking-wide text-[var(--text-primary)] uppercase">KAMNAA</span>
+          <span className="text-[9px] font-mono-press uppercase px-1.5 py-0.5 bg-[var(--accent-primary)] text-[var(--background)] font-bold">
             0 KB EGRESS
           </span>
         </div>
@@ -295,7 +296,7 @@ export function App() {
           <button
             onClick={toggleOverlay}
             className={`p-1.5 rounded-none text-xs transition-all ${
-              overlayActive ? "bg-[var(--color-accent)] text-[var(--color-paper)]" : "hallmark-button"
+              overlayActive ? "bg-[var(--accent-primary)] text-[var(--background)]" : "hallmark-button"
             }`}
             title="Toggle Visual Overlay"
           >
@@ -307,7 +308,7 @@ export function App() {
           <button
             onClick={() => setActiveDrawer(activeDrawer === "ai" ? "none" : "ai")}
             className={`p-1.5 rounded-none text-xs transition-all ${
-              activeDrawer === "ai" ? "bg-[var(--color-accent)] text-[var(--color-paper)]" : "hallmark-button"
+              activeDrawer === "ai" ? "bg-[var(--accent-primary)] text-[var(--background)]" : "hallmark-button"
             }`}
             title="AI Providers"
           >
@@ -318,7 +319,7 @@ export function App() {
           <button
             onClick={() => setActiveDrawer(activeDrawer === "models" ? "none" : "models")}
             className={`p-1.5 rounded-none text-xs transition-all ${
-              activeDrawer === "models" ? "bg-[var(--color-accent)] text-[var(--color-paper)]" : "hallmark-button"
+              activeDrawer === "models" ? "bg-[var(--accent-primary)] text-[var(--background)]" : "hallmark-button"
             }`}
             title="Vision Models"
           >
@@ -329,7 +330,7 @@ export function App() {
           <button
             onClick={() => setActiveDrawer(activeDrawer === "privacy" ? "none" : "privacy")}
             className={`p-1.5 rounded-none text-xs transition-all ${
-              activeDrawer === "privacy" ? "bg-[var(--color-accent)] text-[var(--color-paper)]" : "hallmark-button"
+              activeDrawer === "privacy" ? "bg-[var(--accent-primary)] text-[var(--background)]" : "hallmark-button"
             }`}
             title="Privacy Ledger"
           >
@@ -340,7 +341,7 @@ export function App() {
           <button
             onClick={() => setActiveDrawer(activeDrawer === "history" ? "none" : "history")}
             className={`p-1.5 rounded-none text-xs transition-all ${
-              activeDrawer === "history" ? "bg-[var(--color-accent)] text-[var(--color-paper)]" : "hallmark-button"
+              activeDrawer === "history" ? "bg-[var(--accent-primary)] text-[var(--background)]" : "hallmark-button"
             }`}
             title="Local Session History"
           >
@@ -349,25 +350,25 @@ export function App() {
             </svg>
           </button>
           <button
-            onClick={() => setShowShortcuts(!showShortcuts)}
-            className="p-1.5 rounded-none hallmark-button transition-all"
-            title="Shortcuts"
+            onClick={() => setActiveDrawer(activeDrawer === "profile" ? "none" : "profile")}
+            className={`p-1.5 rounded-none text-xs transition-all ${
+              activeDrawer === "profile" ? "bg-[var(--accent-primary)] text-[var(--background)]" : "hallmark-button"
+            }`}
+            title="Local Profile"
           >
             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.2} d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
             </svg>
           </button>
+
         </div>
       </header>
 
-      {/* Shortcuts Overlay Modal */}
-      {showShortcuts && (
-        <ShortcutsOverlay onClose={() => setShowShortcuts(false)} />
-      )}
+
 
       {/* LLM Status Banner */}
       {!llmStatus.available && (
-        <div className="px-4 py-2 bg-[var(--color-accent)] text-[var(--color-paper)] text-[11px] font-mono-press font-semibold flex items-center justify-between border-b-2 border-[var(--color-ink)]">
+        <div className="px-4 py-2 bg-[var(--accent-primary)] text-[var(--background)] text-[11px] font-mono-press font-semibold flex items-center justify-between border-b-2 border-[var(--border)]">
           <span className="flex items-center gap-1.5 uppercase">
             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
@@ -376,7 +377,7 @@ export function App() {
           </span>
           <button
             onClick={() => setActiveDrawer("ai")}
-            className="text-[10px] px-2 py-0.5 bg-[var(--color-paper)] text-[var(--color-ink)] font-bold uppercase tracking-wider border border-[var(--color-ink)]"
+            className="text-[10px] px-2 py-0.5 bg-[var(--background)] text-[var(--text-primary)] font-bold uppercase tracking-wider border border-[var(--border)]"
           >
             Setup →
           </button>
@@ -392,22 +393,23 @@ export function App() {
           {!progress && pipelineResult && <PipelineSummaryPanel result={pipelineResult} />}
           {!progress && subTasks && (
             <div className="hallmark-card p-3 space-y-1.5 animate-fade-in font-mono-press">
-              <p className="text-[10px] uppercase tracking-widest font-semibold text-[var(--color-ink-mute)]">
+              <p className="text-[10px] uppercase tracking-widest font-semibold text-[var(--text-secondary)]">
                 {subTasks.length} Sub-Tasks Decomposed
               </p>
               <div className="space-y-1">
                 {subTasks.map((st, i) => (
-                  <div key={i} className="flex items-center gap-2 text-xs text-[var(--color-ink)] font-body-editorial">
-                    <span className="w-1.5 h-1.5 bg-[var(--color-ink)]" />
+                  <div key={i} className="flex items-center gap-2 text-xs text-[var(--text-primary)] font-body-editorial">
+                    <span className="w-1.5 h-1.5 bg-[var(--accent-primary)]" />
                     <span className="flex-1">{st.description}</span>
                   </div>
                 ))}
               </div>
             </div>
           )}
-          {!progress && needs && needs.length > 0 && (
+          {!progress && ((needs && needs.length > 0) || (pipelineResult?.ambiguousFields && pipelineResult.ambiguousFields.length > 0)) && (
             <NeedsInputPanel
-              needs={needs}
+              needs={needs || []}
+              ambiguousFields={pipelineResult?.ambiguousFields}
               onRetry={
                 lastTask
                   ? () => void startTask(lastTask.description, lastTask.data)
@@ -427,15 +429,16 @@ export function App() {
 
       {/* ── Slide-Over Modals ────────────────────────────────────── */}
       {activeDrawer !== "none" && (
-        <div className="absolute inset-0 z-30 flex flex-col bg-[var(--color-paper)] animate-fade-in border-l-2 border-[var(--color-ink)]">
-          <div className="flex items-center justify-between px-4 py-2.5 bg-[var(--color-paper-2)] border-b-2 border-[var(--color-ink)]">
-            <span className="text-sm font-display-poster uppercase tracking-wider text-[var(--color-ink)]">
+        <div className="absolute inset-0 z-30 flex flex-col bg-[var(--background)] animate-fade-in border-l-2 border-[var(--border)]">
+          <div className="flex items-center justify-between px-4 py-2.5 bg-[var(--surface)] border-b-2 border-[var(--border)]">
+            <span className="text-sm font-display-poster uppercase tracking-wider text-[var(--text-primary)]">
               {activeDrawer === "ai" && "AI Provider Setup"}
               {activeDrawer === "models" && "Runtime & Vision Models"}
               {activeDrawer === "privacy" && "Privacy Ledger"}
               {activeDrawer === "learn" && "Learning Log"}
               {activeDrawer === "debug" && "Reasoning Trace"}
               {activeDrawer === "history" && "Local Session History"}
+              {activeDrawer === "profile" && "Local Profile"}
             </span>
             <button
               onClick={() => setActiveDrawer("none")}
@@ -451,6 +454,7 @@ export function App() {
               {activeDrawer === "privacy" && <PrivacyMonitor />}
               {activeDrawer === "learn" && <LearningLog />}
               {activeDrawer === "debug" && <ReasoningTrace steps={reasoningTrace} task={task} />}
+              {activeDrawer === "profile" && <LocalProfilePanel />}
               {activeDrawer === "history" && (
                 <SessionHistoryPanel
                   onSelectPrompt={(prompt) => {
@@ -465,54 +469,22 @@ export function App() {
       )}
 
       {/* ── Footer Bar ───────────────────────────────────────────── */}
-      <footer className="relative z-20 flex items-center justify-between px-4 py-2 bg-[var(--color-paper-2)] border-t-2 border-[var(--color-ink)] text-[10px] font-mono-press font-semibold uppercase">
+      <footer className="relative z-20 flex items-center justify-between px-4 py-2 bg-[var(--surface)] border-t-2 border-[var(--border)] text-[10px] font-mono-press font-semibold uppercase">
         <span>{task ? `${task.status.toUpperCase()} • STEP ${task.currentStep}/${task.totalSteps}` : "KAMNAA READY"}</span>
         <div className="flex items-center gap-3">
-          <button onClick={() => setActiveDrawer("history")} className="hover:text-[var(--color-accent)] transition-colors">
+          <button onClick={() => setActiveDrawer("history")} className="hover:text-[var(--accent-primary)] transition-colors">
             History
           </button>
-          <button onClick={() => setActiveDrawer("learn")} className="hover:text-[var(--color-accent)] transition-colors">
+          <button onClick={() => setActiveDrawer("learn")} className="hover:text-[var(--accent-primary)] transition-colors">
             Log
           </button>
-          <button onClick={() => setActiveDrawer("debug")} className="hover:text-[var(--color-accent)] transition-colors">
+          <button onClick={() => setActiveDrawer("debug")} className="hover:text-[var(--accent-primary)] transition-colors">
             Debug
           </button>
-          <span className="w-2 h-2 rounded-full bg-[var(--color-teal)]" />
+          <span className="w-2 h-2 rounded-full bg-[var(--success)]" />
         </div>
       </footer>
     </div>
   );
 }
 
-function ShortcutsOverlay({ onClose }: { onClose: () => void }) {
-  return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-[rgba(40,35,29,0.8)]"
-      onClick={(e) => {
-        if (e.target === e.currentTarget) onClose();
-      }}
-    >
-      <div className="hallmark-card p-5 max-w-xs w-full mx-4 animate-fade-in space-y-3">
-        <h3 className="text-lg font-display-poster uppercase text-[var(--color-ink)] border-b-2 border-[var(--color-ink)] pb-1">
-          Shortcuts
-        </h3>
-        <div className="space-y-2 font-mono-press text-xs">
-          {Object.entries(SHORTCUTS).map(([key, desc]) => (
-            <div key={key} className="flex items-center justify-between">
-              <span className="text-[var(--color-ink-2)]">{desc}</span>
-              <kbd className="text-[10px] bg-[var(--color-paper-2)] border border-[var(--color-ink)] px-2 py-0.5 font-bold text-[var(--color-ink)]">
-                {key}
-              </kbd>
-            </div>
-          ))}
-        </div>
-        <button
-          onClick={onClose}
-          className="w-full hallmark-button text-xs py-1.5 font-mono-press uppercase"
-        >
-          Close (Esc)
-        </button>
-      </div>
-    </div>
-  );
-}

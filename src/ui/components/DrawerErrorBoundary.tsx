@@ -34,17 +34,17 @@ export class DrawerErrorBoundary extends Component<Props, State> {
       return (
         this.props.fallback ?? (
           <div className="p-4 space-y-3 font-mono-press">
-            <div className="hallmark-card border-2 border-[var(--color-accent)] p-3 bg-[var(--color-paper-2)]">
-              <p className="text-[11px] font-bold text-[var(--color-accent)] uppercase tracking-wider">
+            <div className="hallmark-card border-2 border-[var(--accent-primary)] p-3 bg-[var(--surface)]">
+              <p className="text-[11px] font-bold text-[var(--accent-primary)] uppercase tracking-wider">
                 Panel Error
               </p>
-              <p className="text-[10px] text-[var(--color-ink-2)] mt-1 break-all">
+              <p className="text-[10px] text-[var(--text-secondary)] mt-1 break-all">
                 {error.message}
               </p>
             </div>
-            <p className="text-[10px] text-[var(--color-ink-mute)] leading-relaxed">
+            <p className="text-[10px] text-[var(--text-secondary)] leading-relaxed">
               This panel crashed. Try reloading the extension: go to{" "}
-              <span className="font-bold text-[var(--color-ink)]">
+              <span className="font-bold text-[var(--text-primary)]">
                 chrome://extensions
               </span>{" "}
               and click the reload icon next to KAMNAA.

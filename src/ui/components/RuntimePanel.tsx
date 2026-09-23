@@ -35,22 +35,22 @@ function fmtBytes(n: number): string {
 }
 
 const TIER_META: Record<string, { label: string; cls: string }> = {
-  A: { label: "GPU Accelerated", cls: "bg-[var(--color-accent)] text-[var(--color-paper)] border-2 border-[var(--color-ink)]" },
-  B: { label: "CPU SIMD", cls: "bg-[var(--color-accent)] text-[var(--color-paper)] border-2 border-[var(--color-ink)]" },
-  C: { label: "CPU Baseline", cls: "bg-[var(--color-paper-3)] text-[var(--color-ink)] border-2 border-[var(--color-ink)]" },
+  A: { label: "GPU Accelerated", cls: "bg-[var(--accent-primary)] text-[var(--background)] border-2 border-[var(--border)]" },
+  B: { label: "CPU SIMD", cls: "bg-[var(--accent-primary)] text-[var(--background)] border-2 border-[var(--border)]" },
+  C: { label: "CPU Baseline", cls: "bg-[var(--surface)] text-[var(--text-primary)] border-2 border-[var(--border)]" },
 };
 
 const STATE_META: Record<
   ModelStatus["state"],
   { label: string; dot: string; text: string }
 > = {
-  ready: { label: "Ready", dot: "bg-[var(--color-accent)]", text: "text-[var(--color-accent)]" },
-  cached: { label: "Cached", dot: "bg-[var(--color-accent)]", text: "text-[var(--color-accent)]" },
-  downloading: { label: "Downloading", dot: "bg-[var(--color-accent)] animate-pulse", text: "text-[var(--color-accent)]" },
-  loading: { label: "Loading", dot: "bg-[var(--color-accent)] animate-pulse", text: "text-[var(--color-accent)]" },
-  not_loaded: { label: "Not Loaded", dot: "bg-[var(--color-ink-mute)]", text: "text-[var(--color-ink-mute)]" },
-  skipped: { label: "Later Phase", dot: "bg-[var(--color-ink-mute)]", text: "text-[var(--color-ink-mute)]" },
-  error: { label: "Error", dot: "bg-[var(--color-accent)]", text: "text-[var(--color-accent)]" },
+  ready: { label: "Ready", dot: "bg-[var(--accent-primary)]", text: "text-[var(--accent-primary)]" },
+  cached: { label: "Cached", dot: "bg-[var(--accent-primary)]", text: "text-[var(--accent-primary)]" },
+  downloading: { label: "Downloading", dot: "bg-[var(--accent-primary)] animate-pulse", text: "text-[var(--accent-primary)]" },
+  loading: { label: "Loading", dot: "bg-[var(--accent-primary)] animate-pulse", text: "text-[var(--accent-primary)]" },
+  not_loaded: { label: "Not Loaded", dot: "bg-[var(--text-secondary)]", text: "text-[var(--text-secondary)]" },
+  skipped: { label: "Later Phase", dot: "bg-[var(--text-secondary)]", text: "text-[var(--text-secondary)]" },
+  error: { label: "Error", dot: "bg-[var(--accent-primary)]", text: "text-[var(--accent-primary)]" },
 };
 
 export function RuntimePanel() {
@@ -110,11 +110,11 @@ export function RuntimePanel() {
     .map((s) => s.id);
 
   return (
-    <div className="space-y-4 font-sans text-[var(--color-ink)]">
+    <div className="space-y-4 font-sans text-[var(--text-primary)]">
       {/* Backend Hardware Profile Card */}
-      <div className="hallmark-card p-3.5 space-y-2.5 bg-[var(--color-paper-2)]">
+      <div className="hallmark-card p-3.5 space-y-2.5 bg-[var(--surface)]">
         <div className="flex items-center justify-between">
-          <h2 className="text-xs font-mono-press font-bold uppercase tracking-wider text-[var(--color-ink)]">
+          <h2 className="text-xs font-mono-press font-bold uppercase tracking-wider text-[var(--text-primary)]">
             Hardware Execution Profile
           </h2>
           <button
@@ -135,11 +135,11 @@ export function RuntimePanel() {
               >
                 Tier {backend.tier}
               </span>
-              <span className="text-[11px] font-semibold text-[var(--color-ink)]">
+              <span className="text-[11px] font-semibold text-[var(--text-primary)]">
                 {TIER_META[backend.tier]?.label}
               </span>
             </div>
-            <p className="text-[11px] text-[var(--color-ink-2)] leading-relaxed font-body-editorial font-medium">
+            <p className="text-[11px] text-[var(--text-secondary)] leading-relaxed font-body-editorial font-medium">
               {backend.summary}
             </p>
             <div className="flex flex-wrap gap-1.5 pt-1">
@@ -149,7 +149,7 @@ export function RuntimePanel() {
             </div>
           </div>
         ) : (
-          <div className="text-[11px] text-[var(--color-ink-mute)] font-mono-press">
+          <div className="text-[11px] text-[var(--text-secondary)] font-mono-press">
             Detecting hardware runtime profile...
           </div>
         )}
@@ -174,14 +174,14 @@ export function RuntimePanel() {
       </div>
 
       {error && (
-        <div className="hallmark-card p-2.5 border-2 border-[var(--color-accent)] bg-[var(--color-paper-2)] text-xs text-[var(--color-accent)] font-mono-press font-bold">
+        <div className="hallmark-card p-2.5 border-2 border-[var(--accent-primary)] bg-[var(--surface)] text-xs text-[var(--accent-primary)] font-mono-press font-bold">
           {error}
         </div>
       )}
 
       {/* ONNX Models Inventory */}
       <div className="space-y-2 font-mono-press">
-        <span className="text-[10px] text-[var(--color-ink-mute)] font-bold uppercase tracking-widest block">
+        <span className="text-[10px] text-[var(--text-secondary)] font-bold uppercase tracking-widest block">
           On-Device Vision Models
         </span>
         {statuses.map((s) => (
@@ -197,8 +197,8 @@ function Cap({ on, label }: { on: boolean; label: string }) {
     <span
       className={`text-[9px] font-mono-press font-bold px-2 py-0.5 uppercase border-2 ${
         on
-          ? "border-[var(--color-ink)] text-[var(--color-paper)] bg-[var(--color-accent)]"
-          : "border-[var(--color-ink)] text-[var(--color-paper)] bg-[var(--color-ink)]"
+          ? "border-[var(--border)] text-[var(--background)] bg-[var(--accent-primary)]"
+          : "border-[var(--border)] text-[var(--background)] bg-[var(--accent-primary)]"
       }`}
     >
       {on ? "PASS" : "OFF"} {label}
@@ -220,18 +220,18 @@ function ModelRow({
   const showBar = s.state === "downloading" || s.state === "loading";
 
   return (
-    <div className="hallmark-card p-3 space-y-1 bg-[var(--color-paper)]">
+    <div className="hallmark-card p-3 space-y-1 bg-[var(--background)]">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2 min-w-0">
           <span className={`w-2 h-2 rounded-full shrink-0 ${meta.dot}`} />
-          <span className="text-xs text-[var(--color-ink)] font-bold font-mono-press truncate">{s.name}</span>
+          <span className="text-xs text-[var(--text-primary)] font-bold font-mono-press truncate">{s.name}</span>
         </div>
         <div className="flex items-center gap-2 shrink-0">
           {s.state === "not_loaded" && onWarm && (
             <button
               disabled={disabled}
               onClick={() => onWarm(s.id as ModelId)}
-              className="text-[9px] px-2 py-0.5 border border-[var(--color-ink)] bg-[var(--color-paper-2)] hover:bg-[var(--color-paper-3)] font-mono-press uppercase disabled:opacity-40"
+              className="text-[9px] px-2 py-0.5 border border-[var(--border)] bg-[var(--surface)] hover:bg-[var(--surface)] font-mono-press uppercase disabled:opacity-40"
             >
               Warm
             </button>
@@ -239,20 +239,20 @@ function ModelRow({
           <span className={`text-[10px] font-mono-press font-bold shrink-0 uppercase ${meta.text}`}>{meta.label}</span>
         </div>
       </div>
-      <div className="flex items-center justify-between text-[10px] text-[var(--color-ink-mute)] font-mono-press font-semibold">
+      <div className="flex items-center justify-between text-[10px] text-[var(--text-secondary)] font-mono-press font-semibold">
         <span>{fmtBytes(s.sizeBytes)}</span>
-        {s.required && <span className="uppercase text-[var(--color-accent)] font-bold">Required</span>}
+        {s.required && <span className="uppercase text-[var(--accent-primary)] font-bold">Required</span>}
       </div>
       {showBar && (
-        <div className="h-2 bg-[var(--color-paper-3)] border border-[var(--color-ink)] overflow-hidden mt-1">
+        <div className="h-2 bg-[var(--surface)] border border-[var(--border)] overflow-hidden mt-1">
           <div
-            className="h-full bg-[var(--color-accent)] transition-all duration-200"
+            className="h-full bg-[var(--accent-primary)] transition-all duration-200"
             style={{ width: `${pct}%` }}
           />
         </div>
       )}
       {s.error && (
-        <p className="text-[10px] text-[var(--color-accent)] font-mono-press font-bold truncate" title={s.error}>
+        <p className="text-[10px] text-[var(--accent-primary)] font-mono-press font-bold truncate" title={s.error}>
           {s.error}
         </p>
       )}
