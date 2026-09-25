@@ -43,6 +43,23 @@ export function scoreElement(el: Element, targetDesc: string): number {
   else if (cleanElText && cleanElText === cleanExpected) score += 40;
   else if (elText && expected && (elText.includes(expected) || expected.includes(elText))) score += 20;
   
+  // Generic search-input semantic match
+  const requiresSearch = cleanExpected.includes("search");
+  const isInputLike = ["input", "textarea"].includes(el.tagName.toLowerCase()) || el.getAttribute("role") === "textbox" || el.getAttribute("role") === "searchbox";
+  if (requiresSearch && isInputLike) {
+    const searchMeta = norm(
+      (el.getAttribute("placeholder") || "") + " " +
+      (el.getAttribute("aria-label") || "") + " " +
+      (el.getAttribute("title") || "") + " " +
+      (el.getAttribute("name") || "") + " " +
+      (el.id || "") + " " +
+      (el.getAttribute("role") || "")
+    );
+    if (searchMeta.includes("search")) {
+      score += 45; // Give strong enough score to be grounded
+    }
+  }
+  
   // Tag and role matching bonuses
   const role = el.getAttribute("role");
   if (cleanExpected.includes("save") || cleanExpected.includes("preview") || cleanExpected.includes("submit") || cleanExpected.includes("button")) {

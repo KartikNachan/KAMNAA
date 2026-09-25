@@ -15,7 +15,7 @@ import { guardedFetch } from "../privacy/egress-guard";
 import { encryptValue, decryptValue } from "../memory/encrypted-store";
 import { maskPIIInText } from "../privacy/pii-detector";
 import type { SanitizedContext, PlanResult } from "./server-bridge";
-import type { PlannedAction } from "../../types";
+import type { PlannedAction, ActionType } from "../../types";
 
 // ── Provider Configuration Types ────────────────────────────
 
@@ -44,6 +44,21 @@ export interface ProviderStatus {
   latencyMs: number;
   error?: string;
 }
+
+const VALID_ACTION_TYPES: ActionType[] = [
+  "click",
+  "type",
+  "scroll",
+  "navigate",
+  "select",
+  "hover",
+  "press_key",
+  "upload_file",
+  "wait",
+  "go_back",
+  "close_tab",
+  "switch_tab",
+];
 
 // ── Default Configs ─────────────────────────────────────────
 
@@ -471,7 +486,7 @@ function extractJsonObject(str: string): any | null {
   return null;
 }
 
-function parsePlanResponse(response: string): {
+export function parsePlanResponse(response: string): {
   steps: PlannedAction[];
   reasoning: string;
 } {
@@ -509,6 +524,10 @@ function parsePlanResponse(response: string): {
           : "click") as string;
         if (actionType === "fill" || actionType === "input") actionType = "type";
 
+        if (!VALID_ACTION_TYPES.includes(actionType as ActionType)) {
+          throw new Error(`Invalid action type from LLM: "${actionType}"\nExpected one of: ${VALID_ACTION_TYPES.join(", ")}`);
+        }
+
         // TEST 5: Fallback safety if targetDescription is missing
         if (!targetDescription && actionType === "click" && target && target.startsWith("[")) {
           // It's unsafe to blindly click a numeric index without semantic intent.
@@ -539,8 +558,10 @@ function parsePlanResponse(response: string): {
       reasoning: parsed.reasoning || `Generated ${steps.length} steps`,
     };
   } catch (err: any) {
+    const errMsg = err instanceof Error ? err.message : String(err);
+    console.warn(`[KAMNAA] ${errMsg}`);
     console.log(`[KAMNAA DEBUG] planner-validation\nsuccess=false\nsteps=0\nreason=exception_during_mapping`);
-    return { steps: [], reasoning: "Failed to process LLM action steps" };
+    return { steps: [], reasoning: errMsg || "Failed to process LLM action steps" };
   }
 }
 

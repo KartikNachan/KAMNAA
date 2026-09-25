@@ -100,4 +100,36 @@ describe("Action Grounding - Content Script Fallback", () => {
     const result = performFullDOMSemanticFallback("Save as Draft button", () => true);
     expect(result).toBeNull();
   });
+
+  it("TEST 7: Search semantic grounding - 'search box' grounds to generic search input", () => {
+    const input = new MockElement("INPUT");
+    input.setAttribute("type", "text");
+    input.setAttribute("role", "textbox");
+    input.setAttribute("aria-label", "Search Amazon.in");
+    input.setAttribute("placeholder", "Search Amazon.in");
+    mockElements.push(input);
+
+    const result = performFullDOMSemanticFallback("search box", () => true);
+    expect(result).toBe(input as any);
+  });
+
+  it("TEST 8: Generic search input with 'Search products' placeholder", () => {
+    const input = new MockElement("INPUT");
+    input.setAttribute("type", "text");
+    input.setAttribute("placeholder", "Search products");
+    mockElements.push(input);
+
+    const result = performFullDOMSemanticFallback("search box", () => true);
+    expect(result).toBe(input as any);
+  });
+
+  it("TEST 9: Normal input must NOT become search box", () => {
+    const input = new MockElement("INPUT");
+    input.setAttribute("type", "text");
+    input.setAttribute("placeholder", "First Name");
+    mockElements.push(input);
+
+    const result = performFullDOMSemanticFallback("search box", () => true);
+    expect(result).toBeNull();
+  });
 });

@@ -94,6 +94,44 @@ export function groundAction(
     return { success: false, groundedTarget: "", reason: "no_semantic_intent", diagnostic: diagnosticLog };
   }
 
+  function attemptVisualGrounding(methodName: string) {
+    if (!currentDomData?.florenceTextRegions) return null;
+    const visualCandidates = currentDomData.florenceTextRegions.map((region: any) => {
+      const regionText = norm(region.text);
+      let score = 0;
+      if (regionText === normalizedExpected) score += 5;
+      else if (regionText.includes(normalizedExpected) || normalizedExpected.includes(regionText)) score += 2;
+      return { region, score };
+    }).filter((c: any) => c.score > 0)
+      .sort((a: any, b: any) => b.score - a.score);
+
+    if (visualCandidates.length > 0 && visualCandidates[0].score >= 2) {
+      const bestVisual = visualCandidates[0].region;
+      const x = bestVisual.box.x + bestVisual.box.w / 2;
+      const y = bestVisual.box.y + bestVisual.box.h / 2;
+      
+      diagnosticLog.targetText = bestVisual.text;
+      diagnosticLog.groundingScore = visualCandidates[0].score;
+      diagnosticLog.groundingMethod = methodName;
+      console.log(`[KAMNAA DIAGNOSTIC] Grounding:`, JSON.stringify(diagnosticLog));
+      
+      return {
+        success: true,
+        groundedTarget: "visual_coordinates",
+        reason: `visual_semantic_match (score ${visualCandidates[0].score})`,
+        coordinates: { x, y },
+        diagnostic: diagnosticLog
+      };
+    }
+    return null;
+  }
+
+  // 1.5. VISUAL-FIRST GROUNDING (Click actions only)
+  if (plannedAction.action.type === "click") {
+    const visualResult = attemptVisualGrounding("visual_first_coordinates");
+    if (visualResult) return visualResult;
+  }
+
   // 2. SELECT Action Grounding Fast-Path
   if (plannedAction.action.type === "select" && diagnosticLog.originalTargetIndex !== null && currentDomData?.elements) {
     const origIdx = diagnosticLog.originalTargetIndex;
@@ -164,6 +202,23 @@ export function groundAction(
       else if (cleanElText && cleanElText === cleanExpected) score += 40;
       else if (elText && normalizedExpected && (elText.includes(normalizedExpected) || normalizedExpected.includes(elText))) score += 20;
       
+      // Generic search-input semantic match
+      const requiresSearch = cleanExpected.includes("search");
+      const isInputLike = ["input", "textarea"].includes(el.tag) || el.role === "textbox" || el.role === "searchbox";
+      if (requiresSearch && isInputLike) {
+        const searchMeta = norm(
+          (el.placeholder || "") + " " +
+          (el.ariaLabel || "") + " " +
+          (el.label || "") + " " +
+          (el.name || "") + " " +
+          (el.id || "") + " " +
+          (el.role || "")
+        );
+        if (searchMeta.includes("search")) {
+          score += 45; // Give strong enough score to be grounded
+        }
+      }
+
       if (expectedTag && el.tag === expectedTag) score += 10;
       if (expectedRole && el.role === expectedRole) score += 10;
       
@@ -256,34 +311,9 @@ export function groundAction(
   }
 
   // 3. Visual Grounding Fallback
-  if (currentDomData?.florenceTextRegions) {
-    const visualCandidates = currentDomData.florenceTextRegions.map((region: any) => {
-      const regionText = norm(region.text);
-      let score = 0;
-      if (regionText === normalizedExpected) score += 5;
-      else if (regionText.includes(normalizedExpected) || normalizedExpected.includes(regionText)) score += 2;
-      return { region, score };
-    }).filter((c: any) => c.score > 0)
-      .sort((a: any, b: any) => b.score - a.score);
-
-    if (visualCandidates.length > 0 && visualCandidates[0].score >= 2) {
-      const bestVisual = visualCandidates[0].region;
-      const x = bestVisual.box.x + bestVisual.box.w / 2;
-      const y = bestVisual.box.y + bestVisual.box.h / 2;
-      
-      diagnosticLog.targetText = bestVisual.text;
-      diagnosticLog.groundingScore = visualCandidates[0].score;
-      diagnosticLog.groundingMethod = "visual_coordinates";
-      console.log(`[KAMNAA DIAGNOSTIC] Grounding:`, JSON.stringify(diagnosticLog));
-      
-      return {
-        success: true,
-        groundedTarget: "visual_coordinates",
-        reason: `visual_semantic_match (score ${visualCandidates[0].score})`,
-        coordinates: { x, y },
-        diagnostic: diagnosticLog
-      };
-    }
+  if (plannedAction.action.type !== "click") {
+    const fallbackResult = attemptVisualGrounding("visual_coordinates_fallback");
+    if (fallbackResult) return fallbackResult;
   }
 
   // 4. Defer to Content Script Fallback
@@ -331,6 +361,23 @@ export function groundAction(
       else if (cleanElText && cleanElText === cleanExpected) score += 40;
       else if (elText && normalizedExpected && (elText.includes(normalizedExpected) || normalizedExpected.includes(elText))) score += 20;
       
+      // Generic search-input semantic match
+      const requiresSearch = cleanExpected.includes("search");
+      const isInputLike = ["input", "textarea"].includes(el.tag) || el.role === "textbox" || el.role === "searchbox";
+      if (requiresSearch && isInputLike) {
+        const searchMeta = norm(
+          (el.placeholder || "") + " " +
+          (el.ariaLabel || "") + " " +
+          (el.label || "") + " " +
+          (el.name || "") + " " +
+          (el.id || "") + " " +
+          (el.role || "")
+        );
+        if (searchMeta.includes("search")) {
+          score += 45; // Give strong enough score to be grounded
+        }
+      }
+
       if (expectedTag && el.tag === expectedTag) score += 10;
       if (expectedRole && el.role === expectedRole) score += 10;
       

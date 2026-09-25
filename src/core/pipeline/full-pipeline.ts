@@ -388,6 +388,16 @@ export async function executeFullPipeline(
         console.warn("[KAMNAA] Offscreen OCR failed:", err);
       }
     }
+    
+    if (ocrTextBlocks.length > 0) {
+      // Attach OCR text candidates to domData for visual-first action grounding
+      (domData as any).florenceTextRegions = ocrTextBlocks.map(b => ({
+        text: b.text,
+        confidence: b.confidence,
+        box: { x: b.boundingBox.x, y: b.boundingBox.y, w: b.boundingBox.width, h: b.boundingBox.height }
+      }));
+    }
+
     const detectionResult = await runStep(detectStep, async () => {
       return detectAllPII(domData, undefined, ocrTextBlocks.length > 0 ? ocrTextBlocks : undefined);
     });
@@ -1354,7 +1364,7 @@ function isRestrictedUrl(url?: string): boolean {
   return /^(chrome-extension:|chrome:|edge:|about:|brave:)/.test(url);
 }
 
-async function sendToContentScript(type: string, payload: unknown): Promise<any> {
+export async function sendToContentScript(type: string, payload: unknown): Promise<any> {
   let tab: chrome.tabs.Tab | undefined;
   try {
     const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
@@ -1371,7 +1381,7 @@ async function sendToContentScript(type: string, payload: unknown): Promise<any>
   } catch (err: any) {
     const errMsg = err?.message || "";
     // If the port closed, it usually means the action succeeded and triggered a navigation!
-    if (errMsg.includes("message port closed") || errMsg.includes("Receiving end does not exist")) {
+    if (errMsg.includes("message port closed") || errMsg.includes("message channel closed") || errMsg.includes("Receiving end does not exist")) {
       if (type === "EXECUTE_ACTION") {
         // Wait for the new page to load, then return success so the pipeline continues
         if (tab?.id) await waitForTabLoad(tab.id, 3000);
@@ -1602,7 +1612,7 @@ function findSubmitTarget(domData: PageState): string | null {
 
 // ── Rule-Based Plan ──────────────────────────────────────────
 
-function generateRuleBasedPlan(
+export function generateRuleBasedPlan(
   taskDescription: string,
   domData: PageState,
   dataContext?: Record<string, string>
@@ -1670,14 +1680,44 @@ function generateRuleBasedPlan(
   }
 
   // Click specific element
-  const clickMatch = lower.match(/(?:click|press|tap)\s+(?:on\s+)?["']?([^"']+)["']?/);
+  const lowerForClick = lower.replace(/press enter|hit enter|press the enter key/g, '');
+  const clickMatch = lowerForClick.match(/(?:click|press|tap)\s+(?:on\s+)?["']?([^"']+)["']?/);
   if (clickMatch) {
     steps.push({
       index: idx++,
-      action: { id: `r-${idx}`, type: "click", target: clickMatch[1].trim(), retries: 0, maxRetries: 3 },
+      action: { id: `r-${idx}`, type: "click", target: clickMatch[1].trim(), targetDescription: clickMatch[1].trim(), retries: 0, maxRetries: 3 },
       reasoning: `Click "${clickMatch[1].trim()}"`,
       confidence: 0.8,
       verification: "Element should respond",
+      risk: "low",
+    });
+  }
+
+  // Generic search input: "find the search box, enter running shoes under 5000"
+  const genericSearchMatch = 
+    lower.match(/(?:enter|type)\s+(.+?)\s+(?:in|into)\s+(?:the\s+)?search\s+(?:box|bar|input|field)/) ||
+    lower.match(/(?:find|focus)\s+(?:the\s+)?search\s+(?:box|bar|input|field)[,\s]+(?:and\s+)?(?:enter|type)\s+(.+?)(?:$|,)/);
+
+  if (genericSearchMatch) {
+    const query = (genericSearchMatch[1] || genericSearchMatch[2]).trim();
+    steps.push({
+      index: idx++,
+      action: { id: `r-${idx}`, type: "type", target: "search", targetDescription: "search box", value: query, retries: 0, maxRetries: 3 },
+      reasoning: `Type "${query}" into search box`,
+      confidence: 0.85,
+      verification: "Search field should contain query",
+      risk: "low",
+    });
+  }
+
+  // Press Enter key
+  if (lower.includes("press enter") || lower.includes("hit enter") || lower.includes("press the enter key")) {
+    steps.push({
+      index: idx++,
+      action: { id: `r-${idx}`, type: "press_key", key: "Enter", retries: 0, maxRetries: 1 },
+      reasoning: "Press Enter",
+      confidence: 0.9,
+      verification: "Page should submit",
       risk: "low",
     });
   }

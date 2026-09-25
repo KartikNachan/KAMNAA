@@ -1,0 +1,1 @@
+import { decomposeTask } from './src/core/agent/task-decomposer.ts'; console.log(decomposeTask('find the search box, enter running shoes under 5000, and press Enter'));

@@ -320,6 +320,9 @@ export default defineContentScript({
     function extractPageState(): PageState {
       const startTime = performance.now();
 
+      // Fix: invalidate execution-side cache so its ordering matches this new perception snapshot exactly.
+      invalidateElementCache();
+
       const INTERACTIVE_SELECTORS = [
         "a[href]",
         "button",
@@ -1138,7 +1141,7 @@ export default defineContentScript({
                       new Event("change", { bubbles: true })
                     );
                     trace.changeEventDispatched = true;
-                    input.blur();
+                    // input.blur(); // Removed to preserve focus for follow-up press_key (e.g., Enter)
                     
                     trace.afterValue = input.value;
                     trace.verificationStarted = true;
@@ -1398,15 +1401,51 @@ export default defineContentScript({
 
             case "press_key": {
               const active = document.activeElement || document.body;
-              for (const evt of ["keydown", "keypress", "keyup"]) {
-                active.dispatchEvent(
-                  new KeyboardEvent(evt, {
-                    key: action.key || "",
-                    code: action.key || "",
-                    bubbles: true,
-                  })
-                );
+              
+              let formSubmitted = false;
+              const isFormElement =
+                active instanceof HTMLInputElement ||
+                active instanceof HTMLSelectElement ||
+                active instanceof HTMLButtonElement;
+              
+              const form = (isFormElement && (active as any).form) ? (active as any).form as HTMLFormElement : null;
+              const onSubmit = () => { formSubmitted = true; };
+              
+              if (action.key === "Enter" && form) {
+                form.addEventListener("submit", onSubmit, { once: true, capture: true });
               }
+
+              for (const evt of ["keydown", "keypress", "keyup"]) {
+                const event = new KeyboardEvent(evt, {
+                  key: action.key || "",
+                  code: action.key || "",
+                  bubbles: true,
+                  cancelable: true,
+                });
+                active.dispatchEvent(event);
+              }
+              
+              if (action.key === "Enter" && form) {
+                form.removeEventListener("submit", onSubmit, { capture: true });
+              }
+
+              // Handle native form submission for Enter
+              if (action.key === "Enter" && !formSubmitted) {
+                // Textareas use Enter for newlines, so we do not submit.
+                if (form) {
+                  try {
+                    if (typeof form.requestSubmit === "function") {
+                      form.requestSubmit();
+                    } else {
+                      form.submit();
+                    }
+                  } catch (err: any) {
+                    resolve({ success: false, error: err.message });
+                    break;
+                  }
+                }
+              }
+
               resolve({ success: true });
               break;
             }
@@ -1841,6 +1880,24 @@ export default defineContentScript({
         if (elText === expected && elText.length > 0) score += 50;
         else if (cleanElText && cleanElText === cleanExpected) score += 40;
         else if (elText && expected && (elText.includes(expected) || expected.includes(elText))) score += 20;
+
+        // Generic search-input semantic match
+        const requiresSearch = cleanExpected.includes("search");
+        const isInputLike = ["input", "textarea"].includes(el.tagName.toLowerCase()) || el.getAttribute("role") === "textbox" || el.getAttribute("role") === "searchbox";
+        if (requiresSearch && isInputLike) {
+          const searchMeta = norm(
+            (el.getAttribute("placeholder") || "") + " " +
+            (el.getAttribute("aria-label") || "") + " " +
+            (el.getAttribute("title") || "") + " " +
+            (el.getAttribute("name") || "") + " " +
+            (el.id || "") + " " +
+            (el.getAttribute("role") || "")
+          );
+          if (searchMeta.includes("search")) {
+            score += 45; // Give strong enough score to be grounded
+          }
+        }
+
         return score;
       };
 
